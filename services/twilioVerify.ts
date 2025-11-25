@@ -6,10 +6,21 @@ const VERIFY_SERVICE_CACHE_KEY = 'nidhisetu.twilio.verifyServiceSid';
 const VERIFY_FRIENDLY_NAME = 'NIDHISETU Verify';
 
 const extraEnv = (Constants.expoConfig?.extra as { env?: Record<string, string | undefined> } | undefined)?.env ?? {};
-const accountSid = process.env.EXPO_PUBLIC_TWILIO_ACCOUNT_SID ?? extraEnv.EXPO_PUBLIC_TWILIO_ACCOUNT_SID;
-const authToken = process.env.EXPO_PUBLIC_TWILIO_AUTH_TOKEN ?? extraEnv.EXPO_PUBLIC_TWILIO_AUTH_TOKEN;
 
-let cachedServiceSid: string | null = null;
+const sanitizeEnvValue = (value?: string) => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === 'undefined' || trimmed === 'null') {
+    return undefined;
+  }
+  return trimmed;
+};
+
+const accountSid = sanitizeEnvValue(process.env.EXPO_PUBLIC_TWILIO_ACCOUNT_SID) ?? sanitizeEnvValue(extraEnv.EXPO_PUBLIC_TWILIO_ACCOUNT_SID);
+const authToken = sanitizeEnvValue(process.env.EXPO_PUBLIC_TWILIO_AUTH_TOKEN) ?? sanitizeEnvValue(extraEnv.EXPO_PUBLIC_TWILIO_AUTH_TOKEN);
+const configuredServiceSid = sanitizeEnvValue(process.env.EXPO_PUBLIC_TWILIO_VERIFY_SERVICE_SID) ?? sanitizeEnvValue(extraEnv.EXPO_PUBLIC_TWILIO_VERIFY_SERVICE_SID);
+
+let cachedServiceSid: string | null = configuredServiceSid ?? null;
 
 const twilioBaseUrl = 'https://verify.twilio.com/v2';
 
@@ -28,7 +39,10 @@ type TwilioErrorResponse = {
 
 const encodeCredentials = () => {
   if (!accountSid || !authToken) {
-    throw new Error('Missing Twilio credentials. Set EXPO_PUBLIC_TWILIO_ACCOUNT_SID and EXPO_PUBLIC_TWILIO_AUTH_TOKEN.');
+    throw new Error(
+      'Missing Twilio credentials. Set EXPO_PUBLIC_TWILIO_ACCOUNT_SID and EXPO_PUBLIC_TWILIO_AUTH_TOKEN in your .env (or expo config).' +
+        '\nIf you recently updated .env, restart Expo using "npx expo start -c" so the values are compiled into the bundle.'
+    );
   }
   return `Basic ${base64Encode(`${accountSid}:${authToken}`)}`;
 };
@@ -59,6 +73,13 @@ const request = async (path: string, body: URLSearchParams) => {
       // ignore
     }
     const message = detail?.message ?? response.statusText;
+    if (response.status === 401) {
+      await AsyncStorage.removeItem(VERIFY_SERVICE_CACHE_KEY).catch(() => undefined);
+      cachedServiceSid = configuredServiceSid ?? null;
+      throw new Error(
+        'Twilio authentication failed. Double-check EXPO_PUBLIC_TWILIO_ACCOUNT_SID / EXPO_PUBLIC_TWILIO_AUTH_TOKEN and restart the Expo dev server.'
+      );
+    }
     throw new Error(`Twilio request failed: ${message}`);
   }
 

@@ -1,9 +1,10 @@
+import { decode as base64Decode } from 'base-64';
 import { Camera, CameraView } from 'expo-camera';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Location from 'expo-location';
 import * as MediaLibrary from 'expo-media-library';
-import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Image, InteractionManager, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, InteractionManager, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 
@@ -12,12 +13,12 @@ import { AppIcon } from '@/components/atoms/app-icon';
 import { AppText } from '@/components/atoms/app-text';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { useSubmissions } from '@/hooks/use-submissions';
-import { app } from '@/lib/firebase';
+import { supabase, SUPABASE_BUCKET } from '@/lib/supabaseClient';
 import type { BeneficiaryDrawerParamList } from '@/navigation/types';
 import { useAuthStore } from '@/state/authStore';
 import type { DrawerScreenProps } from '@react-navigation/drawer';
 
-const storage = getStorage(app);
+const localEvidenceDir = `${FileSystem.documentDirectory ?? ''}loan-evidence/`;
 
 type LoanEvidenceCameraProps = DrawerScreenProps<BeneficiaryDrawerParamList, 'LoanEvidenceCamera'>;
 
@@ -39,7 +40,10 @@ export const LoanEvidenceCameraScreen = ({ route, navigation }: LoanEvidenceCame
 
   const requestMediaPermission = useCallback(async () => {
     try {
-      const status = await MediaLibrary.requestPermissionsAsync();
+      const options = Platform.OS === 'android'
+        ? ({ accessPrivileges: 'readOnly', mediaTypes: MediaLibrary?.MediaTypeOptions?.Images } as MediaLibrary.PermissionOptions)
+        : undefined;
+      const status = await MediaLibrary.requestPermissionsAsync(options);
       const granted = status.status === 'granted';
       setHasMediaPermission(granted);
       if (!granted) {
@@ -48,6 +52,9 @@ export const LoanEvidenceCameraScreen = ({ route, navigation }: LoanEvidenceCame
       return granted;
     } catch (error) {
       console.warn('Media library permission error', error);
+      if (error instanceof Error && error.message.includes('AUDIO permission')) {
+        console.warn('Expo Go cannot request AUDIO permission. Skipping gallery save; evidence upload continues.');
+      }
       Alert.alert(
         'Gallery access limited',
         'Saving captures to the device gallery is only available in a development build. Evidence uploads will continue.'
@@ -81,6 +88,27 @@ export const LoanEvidenceCameraScreen = ({ route, navigation }: LoanEvidenceCame
       quality: 0.9,
       result: 'tmpfile',
     });
+  }, []);
+
+  const saveToLocalEvidenceFolder = useCallback(async (uri: string) => {
+    if (!FileSystem.documentDirectory) {
+      return undefined;
+    }
+    try {
+      await FileSystem.makeDirectoryAsync(localEvidenceDir, { intermediates: true });
+    } catch (error) {
+      if (!(error instanceof Error && error.message.includes('Already exists'))) {
+        console.warn('Unable to ensure local evidence directory', error);
+      }
+    }
+    const localPath = `${localEvidenceDir}${Date.now()}.jpg`;
+    try {
+      await FileSystem.copyAsync({ from: uri, to: localPath });
+      return localPath;
+    } catch (error) {
+      console.warn('Failed to persist local evidence copy', error);
+      return undefined;
+    }
   }, []);
 
   useEffect(() => {
@@ -129,6 +157,7 @@ export const LoanEvidenceCameraScreen = ({ route, navigation }: LoanEvidenceCame
       if (result?.uri) {
         setPhotoUri(result.uri);
         await saveToGalleryIfAllowed(result.uri);
+        await saveToLocalEvidenceFolder(result.uri);
         await ensureLocation();
       }
     } catch (error) {
@@ -140,12 +169,39 @@ export const LoanEvidenceCameraScreen = ({ route, navigation }: LoanEvidenceCame
   };
 
   const uploadToStorage = async (uri: string) => {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    const filename = `loan-evidence/${userId ?? 'anonymous'}/${Date.now()}.jpg`;
-    const storageRef = ref(storage, filename);
-    await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
-    return getDownloadURL(storageRef);
+    if (!supabase) {
+      throw new Error('Supabase is not configured. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.');
+    }
+    try {
+      const info = await FileSystem.getInfoAsync(uri, { size: true });
+      if (!info.exists) {
+        throw new Error('Captured file is missing.');
+      }
+      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      const binary = base64Decode(base64);
+      const buffer = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) {
+        buffer[i] = binary.charCodeAt(i);
+      }
+      const objectPath = `${userId ?? 'anonymous'}/${Date.now()}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from(SUPABASE_BUCKET)
+        .upload(objectPath, buffer, { contentType: 'image/jpeg' });
+      if (uploadError) {
+        throw new Error(`Supabase upload failed: ${uploadError.message}`);
+      }
+      const { data } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(objectPath);
+      if (!data?.publicUrl) {
+        throw new Error('Unable to generate Supabase public URL.');
+      }
+      return data.publicUrl;
+    } catch (error) {
+      console.error('uploadToStorage error', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown upload error');
+    }
   };
 
   const handleConfirm = async () => {
@@ -173,6 +229,7 @@ export const LoanEvidenceCameraScreen = ({ route, navigation }: LoanEvidenceCame
       }
 
       await saveToGalleryIfAllowed(composedUri);
+      await saveToLocalEvidenceFolder(composedUri);
 
       const remoteUrl = await uploadToStorage(composedUri);
 

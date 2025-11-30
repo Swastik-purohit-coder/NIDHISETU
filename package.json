@@ -1,4 +1,25 @@
 {
+<<<<<<< HEAD
+  "name": "setujs",
+  "license": "0BSD",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "expo": "~54.0.25",
+    "expo-blur": "~15.0.7",
+    "expo-linear-gradient": "~15.0.7",
+    "expo-status-bar": "~3.0.8",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
+  },
+  "private": true
+=======
   "name": "nidhisetu",
   "main": "expo-router/entry",
   "version": "1.0.0",
@@ -82,4 +103,5 @@
   "overrides": {
     "react-native-webview": "13.15.0"
   }
+>>>>>>> 064be9929716ece6bad83adce10a71d23ea7fa1a
 }

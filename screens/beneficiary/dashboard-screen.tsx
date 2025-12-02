@@ -76,7 +76,7 @@ export const BeneficiaryDashboardScreen = () => {
     if (syncState.pendingCount) {
       return `${syncState.pendingCount} uploads pending`;
     }
-    return 'Ready to capture';
+    return 'Ready to sync';
   }, [syncState]);
 
   const heroSummary = useMemo(() => {
@@ -107,10 +107,6 @@ export const BeneficiaryDashboardScreen = () => {
               <Text style={[styles.heroTitle, { color: palette.text }]}>{headerProfile?.name ?? 'Beneficiary'}</Text>
               <Text style={[styles.heroSubtitle, { color: palette.subtext }]}>{schemeLabel}</Text>
             </View>
-            <View style={styles.heroHeaderActions}>
-              <ThemeToggleButton variant="icon" />
-              <Pill label={syncLabel} tone={syncTone[syncState.status]} />
-            </View>
           </View>
           <Text style={[styles.heroHint, { color: palette.text }]}>{heroSummary}</Text>
           <View style={styles.heroMetricsRow}>
@@ -124,7 +120,6 @@ export const BeneficiaryDashboardScreen = () => {
             onPress={() => navigation.navigate('UploadEvidence')}
           />
         </HeroSurface>
-
         <SectionCard
           title="Verification pulse"
           subtitle=" Your checklist completion status"
@@ -136,6 +131,10 @@ export const BeneficiaryDashboardScreen = () => {
             </View>
           }
         >
+          <View style={styles.verificationHeader}>
+            <Pill label={syncLabel} tone={syncTone[syncState.status]} />
+            <ThemeToggleButton variant="icon" />
+          </View>
           <VerificationProgress percentage={progress} />
           <View style={styles.statsRow}>
             <InfoRow label="Completed" value={`${completedCount} items`} />
@@ -195,12 +194,8 @@ const styles = StyleSheet.create({
   heroHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 16,
-  },
-  heroHeaderActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    gap: 8,
+    alignItems: 'flex-start',
   },
   eyebrow: {
     fontSize: 12,
@@ -248,6 +243,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     flexWrap: 'wrap',
+  },
+  verificationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
 });
 

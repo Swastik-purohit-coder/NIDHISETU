@@ -3,17 +3,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Modal, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/components/atoms/app-button';
-import { AppIcon } from '@/components/atoms/app-icon';
 import { AppText } from '@/components/atoms/app-text';
-import { Chip } from '@/components/atoms/chip';
 import { SubmissionCard } from '@/components/molecules/submission-card';
-import { UploadCard } from '@/components/molecules/upload-card';
 import MapView, { Marker } from '@/components/react-native-maps-shim';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { useSubmissions } from '@/hooks/use-submissions';
 import type { BeneficiaryDrawerParamList } from '@/navigation/types';
 import type { SubmissionEvidence } from '@/types/entities';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+
+import { HeroSurface, InfoRow, Pill, SectionCard, useBeneficiaryPalette } from './ui-kit';
 
 export type UploadEvidenceScreenProps = NativeStackScreenProps<BeneficiaryDrawerParamList, 'UploadEvidence'>;
 
@@ -25,6 +24,7 @@ export const UploadEvidenceScreen = ({ route, navigation }: UploadEvidenceScreen
   const [refreshing, setRefreshing] = useState(false);
   const { submissions, refresh, isLoading } = useSubmissions();
   const theme = useAppTheme();
+  const palette = useBeneficiaryPalette();
 
   useEffect(() => {
     if (!locationPermission?.granted) {
@@ -65,7 +65,25 @@ export const UploadEvidenceScreen = ({ route, navigation }: UploadEvidenceScreen
     : location
       ? 'ready'
       : 'fetching';
+  const gpsLabelMap: Record<typeof gpsStatus, string> = {
+    fetching: 'Locating…',
+    ready: 'GPS locked',
+    error: 'Enable location',
+  };
+  const gpsToneMap: Record<typeof gpsStatus, 'success' | 'warning' | 'danger'> = {
+    fetching: 'warning',
+    ready: 'success',
+    error: 'danger',
+  };
+  const gpsLabel = gpsLabelMap[gpsStatus];
   const lastCaptureAt = relatedSubmissions[0]?.capturedAt;
+  const lastCaptureLabel = lastCaptureAt ? new Date(lastCaptureAt).toLocaleString() : 'Not captured yet';
+  const uploadsLabel = `${relatedSubmissions.length} upload${relatedSubmissions.length === 1 ? '' : 's'}`;
+  const locationLabel = location
+    ? `${location.coords.latitude.toFixed(4)}, ${location.coords.longitude.toFixed(4)}`
+    : gpsStatus === 'error'
+      ? 'Location permission required'
+      : 'Fetching coordinates…';
 
   const handleOpenCamera = () => {
     navigation.navigate('LoanEvidenceCamera', { requirementId, requirementName });
@@ -83,93 +101,99 @@ export const UploadEvidenceScreen = ({ route, navigation }: UploadEvidenceScreen
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-      contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.lg }}
+      style={[styles.container, { backgroundColor: palette.background }]}
+      contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing || isLoading} onRefresh={handleRefresh} />}
       accessibilityLabel="Upload evidence detail"
     >
-      <View style={styles.header}>
-        <AppButton
-          label="Back"
-          variant="ghost"
-          icon="arrow-left"
-          onPress={() => navigation.goBack()}
-        />
-        <AppText variant="titleLarge" color="text">
+      <HeroSurface>
+         
+        <AppText variant="titleLarge" color={palette.text} weight="700">
           {requirementName ? `Upload ${requirementName}` : 'Upload Evidence'}
         </AppText>
-        <AppText variant="bodyMedium" color="muted">
+        <AppText variant="bodyMedium" color={palette.text} style={styles.heroSubtitle}>
           Capture geo-tagged proof with timestamp and watermark. Items upload automatically when online.
         </AppText>
-      </View>
-
-      <UploadCard
-        status="idle"
-        gpsStatus={gpsStatus}
-        lastCaptureAt={lastCaptureAt}
-        onCapturePhoto={handleOpenCamera}
-        onCaptureVideo={handleRecordVideo}
-        onOpenDrafts={() => navigation.navigate('SyncStatus')}
-      />
-
-      <View
-        style={[
-          styles.infoCard,
-          {
-            backgroundColor: theme.colors.card,
-            borderColor: theme.colors.border,
-          },
-        ]}
-      >
-        <View style={styles.infoRow}>
-          <AppIcon name="crosshairs-gps" color={gpsStatus === 'error' ? 'error' : 'primary'} />
-          <View>
-            <AppText variant="titleSmall" color="text">
-              Location metadata
-            </AppText>
-            <AppText variant="bodySmall" color="muted">
-              {location
-                ? `${location.coords.latitude.toFixed(4)}, ${location.coords.longitude.toFixed(4)}`
-                : gpsStatus === 'error'
-                  ? 'Location permission required'
-                  : 'Fetching coordinates…'}
-            </AppText>
-          </View>
-          <AppButton label="View Map" variant="outline" compact onPress={() => setShowMap(true)} />
+        <View style={styles.heroPills}>
+          <Pill label={gpsLabel} tone={gpsToneMap[gpsStatus]} />
+          <Pill label={uploadsLabel} tone={relatedSubmissions.length ? 'sky' : 'success'} />
         </View>
-      </View>
-
-      <View style={{ gap: 12 }}>
-        <View style={styles.sectionHeader}>
-          <AppText variant="titleMedium" color="text">
-            Recent uploads
-          </AppText>
-          <Chip
-            label={`${relatedSubmissions.length} item${relatedSubmissions.length === 1 ? '' : 's'}`}
-            tone="secondary"
+        <View style={styles.heroActions}>
+          <AppButton
+            label="Capture Photo"
+            icon="camera"
+            onPress={handleOpenCamera}
+            style={styles.heroActionButton}
+          />
+          <AppButton
+            label="Record Video"
+            icon="video"
+            variant="secondary"
+            onPress={handleRecordVideo}
+            style={styles.heroActionButton}
+          />
+          <AppButton
+            label="View Drafts"
+            icon="folder"
+            variant="outline"
+            onPress={() => navigation.navigate('SyncStatus')}
+            style={styles.heroActionButton}
           />
         </View>
+      </HeroSurface>
+
+      <SectionCard
+        title="Capture readiness"
+        subtitle="GPS lock and capture history"
+        accentLabel={gpsStatus === 'ready' ? 'Ready' : gpsStatus === 'error' ? 'Action needed' : 'Fetching'}
+      >
+        <View style={styles.infoGrid}>
+          <View style={styles.infoItem}>
+            <InfoRow label="GPS" value={gpsLabel} />
+          </View>
+          <View style={styles.infoItem}>
+            <InfoRow label="Last capture" value={lastCaptureLabel} />
+          </View>
+        </View>
+      </SectionCard>
+
+      <SectionCard
+        title="Location metadata"
+        subtitle="Geo-tag ensures speedy verification"
+        accentLabel={gpsLabel}
+      >
+        <View style={styles.locationRow}>
+          <View style={{ flex: 1 }}>
+            <AppText variant="labelSmall" color="muted">
+              Current coordinates
+            </AppText>
+            <AppText variant="titleSmall" color="text">
+              {locationLabel}
+            </AppText>
+          </View>
+          <AppButton label="View map" variant="outline" compact onPress={() => setShowMap(true)} />
+        </View>
+      </SectionCard>
+
+      <SectionCard
+        title="Recent uploads"
+        subtitle="Review latest evidence submissions"
+        accentLabel={uploadsLabel}
+      >
         {relatedSubmissions.length ? (
-          relatedSubmissions.map((submission) => (
-            <SubmissionCard key={submission.id || submission.offlineId} submission={submission} />
-          ))
+          <View style={styles.submissionList}>
+            {relatedSubmissions.map((submission) => (
+              <SubmissionCard key={submission.id || submission.offlineId} submission={submission} />
+            ))}
+          </View>
         ) : (
-          <View style={[styles.emptyState, { borderColor: theme.colors.border }]}
-            accessibilityRole="text"
-          >
-            <AppIcon name="image-off" color="muted" size={32} />
-            <AppText variant="bodyMedium" color="muted" style={{ textAlign: 'center' }}>
+          <View style={[styles.emptyState, { borderColor: palette.border }]} accessibilityRole="text">
+            <AppText variant="bodyMedium" color="muted" align="center">
               No uploads yet. Tap “Capture Photo” to submit your first proof.
             </AppText>
           </View>
         )}
-      </View>
-
-      <AppButton
-        label="Capture Photo"
-        icon="camera"
-        onPress={handleOpenCamera}
-      />
+      </SectionCard>
 
       <AppButton
         label="View All Uploads"
@@ -178,12 +202,8 @@ export const UploadEvidenceScreen = ({ route, navigation }: UploadEvidenceScreen
       />
 
       <Modal visible={showMap} transparent animationType="fade">
-        <View style={[styles.modalBackdrop, { backgroundColor: theme.colors.overlay }]}
-          accessibilityViewIsModal
-        >
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}
-            accessibilityLabel="Map preview"
-          >
+        <View style={[styles.modalBackdrop, { backgroundColor: theme.colors.overlay }]} accessibilityViewIsModal>
+          <View style={[styles.modalContent, { backgroundColor: palette.surface }]} accessibilityLabel="Map preview">
             {location ? (
               <MapView
                 style={styles.map}
@@ -201,7 +221,7 @@ export const UploadEvidenceScreen = ({ route, navigation }: UploadEvidenceScreen
                 Fetching location…
               </AppText>
             )}
-            <AppButton label="Close" onPress={() => setShowMap(false)} style={{ marginTop: theme.spacing.sm }} />
+            <AppButton label="Close" onPress={() => setShowMap(false)} style={styles.modalCloseButton} />
           </View>
         </View>
       </Modal>
@@ -213,37 +233,48 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  infoCard: {
-    padding: 16,
-    borderRadius: 16,
-    gap: 6,
-    borderWidth: 1,
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 72,
+    gap: 20,
   },
-  modalBackdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
+  backButton: {
+    alignSelf: 'flex-start',
   },
-  modalContent: {
-    borderRadius: 16,
-    padding: 16,
+  heroSubtitle: {
+    opacity: 0.9,
   },
-  map: {
-    height: 240,
-    borderRadius: 12,
-  },
-  header: {
+  heroPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
-  infoRow: {
+  heroActions: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 12,
   },
-  sectionHeader: {
+  heroActionButton: {
+    flexGrow: 1,
+    minWidth: 140,
+  },
+  infoGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  infoItem: {
+    flex: 1,
+    minWidth: 160,
+  },
+  locationRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 16,
+  },
+  submissionList: {
+    gap: 12,
   },
   emptyState: {
     borderWidth: 1,
@@ -251,5 +282,23 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     gap: 12,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    borderRadius: 20,
+    padding: 16,
+    gap: 16,
+  },
+  map: {
+    height: 240,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  modalCloseButton: {
+    marginTop: 4,
   },
 });

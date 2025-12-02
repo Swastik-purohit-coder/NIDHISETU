@@ -4,12 +4,11 @@ import * as MediaLibrary from 'expo-media-library';
 import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
-  Image,
-  InteractionManager,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Alert,
+    Image,
+    InteractionManager,
+    StyleSheet,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
@@ -240,9 +239,14 @@ export const LoanEvidenceCameraScreen = ({ route, navigation }: Props) => {
 
       <View style={styles.bottomBar}>
         {!photoUri ? (
-          <TouchableOpacity onPress={handleCapture} disabled={isCapturing}>
-            <View style={styles.captureBtn} />
-          </TouchableOpacity>
+          <AppButton
+            label={isCapturing ? 'Capturing…' : 'Capture Photo'}
+            icon="camera"
+            onPress={handleCapture}
+            loading={isCapturing}
+            disabled={isCapturing}
+            style={styles.captureButton}
+          />
         ) : (
           <>
             <AppButton label="Retake" onPress={() => setPhotoUri(undefined)} />
@@ -256,14 +260,8 @@ export const LoanEvidenceCameraScreen = ({ route, navigation }: Props) => {
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  bottomBar: { padding: 20, flexDirection: 'row', gap: 10, justifyContent: 'center' },
-  captureBtn: {
-    width: 70,
-    height: 70,
-    borderRadius: 50,
-    borderWidth: 4,
-    borderColor: '#fff',
-  },
+  bottomBar: { padding: 20, flexDirection: 'row', gap: 12, justifyContent: 'center' },
+  captureButton: { flex: 1 },
   watermark: {
     position: 'absolute',
     bottom: 20,

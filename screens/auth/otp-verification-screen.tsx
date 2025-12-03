@@ -1,10 +1,11 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { AppButton } from '@/components/atoms/app-button';
+import { AppIcon } from '@/components/atoms/app-icon';
 import { AppText } from '@/components/atoms/app-text';
-import { BrandLogo } from '@/components/atoms/brand-logo';
 import { InputField } from '@/components/atoms/input-field';
 import { useAuthActions } from '@/hooks/use-auth-actions';
 import type { AuthStackParamList } from '@/navigation/types';
@@ -17,12 +18,21 @@ export type OtpVerificationScreenProps = NativeStackScreenProps<AuthStackParamLi
 
 export const OtpVerificationScreen = ({ navigation, route }: OtpVerificationScreenProps) => {
   const { mobile } = route.params ?? {};
-  const { verifyOtp, status, errors: authErrors } = useAuthActions();
+  const { verifyOtp, requestOtp, status, errors: authErrors } = useAuthActions();
   const {
     setValue,
     handleSubmit,
     formState: { errors: formErrors },
   } = useForm<FormValues>({ defaultValues: { otp: '' } });
+
+  const [timer, setTimer] = useState(59);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimer((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const onSubmit = handleSubmit(async ({ otp }) => {
     try {
@@ -33,29 +43,73 @@ export const OtpVerificationScreen = ({ navigation, route }: OtpVerificationScre
     }
   });
 
+  const handleResend = async () => {
+    if (timer === 0 && mobile) {
+      try {
+        await requestOtp(mobile);
+        setTimer(59);
+      } catch {
+        // error handled via hook
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <BrandLogo size={64} align="left" showTagline={false} />
-      <AppText variant="headlineMedium" color="text">
-        Enter OTP
-      </AppText>
-      <AppText variant="bodyMedium" color="muted">
-        Code sent to {mobile ?? 'your number'}
-      </AppText>
-      <InputField
-        label="One Time Password"
-        placeholder="6 digit code"
-        keyboardType="number-pad"
-        maxLength={6}
-        errorText={formErrors.otp?.message}
-        onChangeText={(text) => setValue('otp', text)}
-      />
-      {authErrors.verifyOtp ? (
-        <AppText variant="bodySmall" color="error">
-          {authErrors.verifyOtp}
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <AppIcon name="arrow-left" size={24} color="text" />
+      </TouchableOpacity>
+
+      <View style={styles.content}>
+        <View style={styles.illustrationContainer}>
+          <View style={styles.illustrationCircle}>
+            <AppIcon name="cellphone-message" size={64} color="#7C3AED" />
+          </View>
+        </View>
+
+        <AppText style={styles.title}>Verify Phone Number</AppText>
+
+        <AppText style={styles.description}>
+          A Four digit code has been sent to the {'\n'} + 91{mobile}
         </AppText>
-      ) : null}
-      <AppButton label="Verify" onPress={onSubmit} loading={status.verifyingOtp} disabled={status.verifyingOtp} />
+
+        <AppText style={styles.instruction}>Kindly enter the code to continue.</AppText>
+
+        <View style={styles.inputContainer}>
+          <InputField
+            placeholder="0 0 0 0"
+            keyboardType="number-pad"
+            maxLength={4}
+            errorText={formErrors.otp?.message}
+            onChangeText={(text) => setValue('otp', text)}
+            inputStyle={styles.otpInput}
+            containerStyle={styles.otpInputContainer}
+          />
+        </View>
+
+        <View style={styles.resendContainer}>
+          <AppText style={styles.resendText}>Resend OTP</AppText>
+          <TouchableOpacity onPress={handleResend} disabled={timer > 0}>
+            <AppText style={[styles.timerText, timer === 0 && styles.timerActive]}>
+              00:{timer.toString().padStart(2, '0')}
+            </AppText>
+          </TouchableOpacity>
+        </View>
+
+        {authErrors.verifyOtp ? (
+          <AppText variant="bodySmall" color="error" style={styles.errorText}>
+            {authErrors.verifyOtp}
+          </AppText>
+        ) : null}
+
+        <AppButton
+          label="Next"
+          onPress={onSubmit}
+          loading={status.verifyingOtp}
+          disabled={status.verifyingOtp}
+          style={styles.button}
+        />
+      </View>
     </View>
   );
 };
@@ -63,8 +117,84 @@ export const OtpVerificationScreen = ({ navigation, route }: OtpVerificationScre
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
     padding: 24,
-    gap: 16,
+  },
+  backButton: {
+    marginTop: 24,
+    marginBottom: 24,
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  illustrationContainer: {
+    marginBottom: 32,
+    alignItems: 'center',
     justifyContent: 'center',
+  },
+  illustrationCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F3E8FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  description: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  instruction: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 32,
+  },
+  inputContainer: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  otpInputContainer: {
+    // Style to make it look like boxes or centered
+  },
+  otpInput: {
+    textAlign: 'center',
+    fontSize: 24,
+    letterSpacing: 24,
+  },
+  resendContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 32,
+    gap: 8,
+  },
+  resendText: {
+    fontSize: 14,
+    color: '#1F2937',
+    fontWeight: '600',
+  },
+  timerText: {
+    fontSize: 14,
+    color: '#EF4444',
+    fontWeight: '600',
+  },
+  timerActive: {
+    color: '#7C3AED',
+  },
+  errorText: {
+    marginBottom: 16,
+  },
+  button: {
+    width: '100%',
+    backgroundColor: '#7C3AED',
   },
 });

@@ -1,10 +1,10 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/components/atoms/app-button';
 import { AppText } from '@/components/atoms/app-text';
-import { BrandLogo } from '@/components/atoms/brand-logo';
 import { InputField } from '@/components/atoms/input-field';
 import { useAuthActions } from '@/hooks/use-auth-actions';
 import type { AuthStackParamList } from '@/navigation/types';
@@ -33,38 +33,101 @@ export const MobileInputScreen = ({ navigation }: MobileInputScreenProps) => {
   });
 
   return (
-    <View style={styles.container}>
-      <BrandLogo size={72} align="left" showTagline={false} />
-      <AppText variant="headlineMedium" color="text">
-        Verify your mobile
-      </AppText>
-      <AppText variant="bodyMedium" color="muted">
-        We'll send a one time password to the entered number.
-      </AppText>
-      <InputField
-        label="Mobile Number"
-        keyboardType="phone-pad"
-        placeholder="Enter 10 digit mobile number"
-        helperText="Required for OTP login"
-        errorText={formErrors.mobile?.message}
-        onChangeText={(text) => setValue('mobile', text)}
-        maxLength={10}
-      />
-      {authErrors.requestOtp ? (
-        <AppText variant="bodySmall" color="error">
-          {authErrors.requestOtp}
-        </AppText>
-      ) : null}
-      <AppButton label="Send OTP" onPress={onSubmit} loading={status.requestingOtp} disabled={status.requestingOtp} />
-    </View>
+    <LinearGradient colors={['#A855F7', '#4C1D95']} style={styles.container}>
+      <View style={styles.content}>
+        <View style={styles.titleContainer}>
+          <AppText style={styles.titleText}>NIDHISETU</AppText>
+        </View>
+
+        <View style={styles.header}>
+          <AppText style={styles.subtitleText}>Sign into you account</AppText>
+          <AppText style={styles.descriptionText}>You can log in with your mobile number.</AppText>
+        </View>
+
+        <View style={styles.formContainer}>
+          <InputField
+            leftIcon="phone"
+            keyboardType="phone-pad"
+            placeholder="8770764515"
+            placeholderTextColor="#9CA3AF"
+            errorText={formErrors.mobile?.message}
+            onChangeText={(text) => setValue('mobile', text)}
+            maxLength={10}
+            backgroundColor="#FFFFFF"
+            containerStyle={styles.inputContainer}
+            inputStyle={styles.input}
+          />
+          {authErrors.requestOtp ? (
+            <AppText variant="bodySmall" color="error" style={styles.errorText}>
+              {authErrors.requestOtp}
+            </AppText>
+          ) : null}
+          <AppButton
+            label="Login"
+            onPress={onSubmit}
+            loading={status.requestingOtp}
+            disabled={status.requestingOtp}
+            style={styles.button}
+            tone="primary"
+          />
+        </View>
+      </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  content: {
+    flex: 1,
     padding: 24,
-    gap: 16,
     justifyContent: 'center',
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 48,
+  },
+  titleText: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 2,
+  },
+  header: {
+    marginBottom: 32,
+    alignItems: 'center',
+  },
+  subtitleText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: '#E9D5FF',
+    textAlign: 'center',
+  },
+  formContainer: {
+    gap: 16,
+  },
+  inputContainer: {
+    marginBottom: 8,
+  },
+  input: {
+    color: '#1F2937',
+  },
+  button: {
+    marginTop: 16,
+    backgroundColor: '#7C3AED',
+    borderColor: '#FFFFFF',
+    borderWidth: 1,
+  },
+  errorText: {
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    padding: 4,
+    borderRadius: 4,
   },
 });

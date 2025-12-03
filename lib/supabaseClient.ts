@@ -15,7 +15,9 @@ const sanitize = (value?: string) => {
 const supabaseUrl =
   sanitize(process.env.EXPO_PUBLIC_SUPABASE_URL) ?? sanitize(extraEnv.EXPO_PUBLIC_SUPABASE_URL);
 const supabaseAnonKey =
-  sanitize(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) ?? sanitize(extraEnv.EXPO_PUBLIC_SUPABASE_ANON_KEY);
+  sanitize(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) ?? 
+  sanitize(process.env.EXPO_PUBLIC_SUPABASE_KEY) ?? 
+  sanitize(extraEnv.EXPO_PUBLIC_SUPABASE_ANON_KEY);
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
@@ -24,7 +26,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const SUPABASE_BUCKET =
-  sanitize(process.env.EXPO_PUBLIC_SUPABASE_BUCKET) ?? sanitize(extraEnv.EXPO_PUBLIC_SUPABASE_BUCKET) ?? 'loan-evidence';
+  sanitize(process.env.EXPO_PUBLIC_SUPABASE_BUCKET) ?? sanitize(extraEnv.EXPO_PUBLIC_SUPABASE_BUCKET) ?? 'UploadEvedence';
 
 export const supabase = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false } })

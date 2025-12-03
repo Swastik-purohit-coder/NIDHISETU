@@ -1,4 +1,4 @@
-import type { StyleProp, ViewStyle } from 'react-native';
+import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 
 import type { ColorToken } from '@/constants/theme';
@@ -12,10 +12,11 @@ export interface ChipProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   onPress?: () => void;
 }
 
-export const Chip = ({ label, tone = 'primary', backgroundColor, leftIcon, rightIcon, style, onPress }: ChipProps) => {
+export const Chip = ({ label, tone = 'primary', backgroundColor, leftIcon, rightIcon, style, textStyle, onPress }: ChipProps) => {
   const theme = useAppTheme();
   const bg = backgroundColor ?? theme.colors.primaryContainer;
   const textColor = theme.colors[tone] ?? theme.colors.primary;
@@ -28,7 +29,7 @@ export const Chip = ({ label, tone = 'primary', backgroundColor, leftIcon, right
       disabled={!onPress}
     >
       {leftIcon}
-      <AppText variant="labelMedium" color={textColor}>
+      <AppText variant="labelMedium" style={[{ color: textColor }, textStyle]}>
         {label}
       </AppText>
       {rightIcon}

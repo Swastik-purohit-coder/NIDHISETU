@@ -1,17 +1,4 @@
-import {
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    onSnapshot,
-    orderBy,
-    query,
-    setDoc,
-    type DocumentData,
-    type DocumentSnapshot,
-} from 'firebase/firestore';
-
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabaseClient';
 import type {
     BeneficiaryFormPayload,
     BeneficiaryMetadata,
@@ -21,7 +8,6 @@ import type {
 import type { BeneficiaryProfile } from '@/types/entities';
 
 const COLLECTION_NAME = 'beneficiaries';
-const beneficiariesCollection = collection(db, COLLECTION_NAME);
 
 const cleanContext = (context?: OfficerContext): OfficerContext | undefined => {
   if (!context) {
@@ -33,17 +19,9 @@ const cleanContext = (context?: OfficerContext): OfficerContext | undefined => {
 
 const normalizeMobile = (mobile: string) => mobile.replace(/[^0-9]/g, '');
 
-const buildDocRef = (id: string) => doc(beneficiariesCollection, id);
-
-const materializeRecord = (snapshot: DocumentSnapshot<DocumentData>) => {
-  const data = snapshot.data() as Omit<BeneficiaryRecord, 'id'> | undefined;
-  if (!data) {
-    throw new Error('Beneficiary record is missing payload');
-  }
-  return { ...data, id: snapshot.id };
-};
-
 const saveDraft = async (formValues: BeneficiaryFormPayload, metadata: BeneficiaryMetadata): Promise<BeneficiaryRecord> => {
+  if (!supabase) throw new Error('Supabase not initialized');
+
   const normalizedMobile = normalizeMobile(formValues.mobile);
   if (!normalizedMobile) {
     throw new Error('Beneficiary mobile number is required before saving.');
@@ -63,20 +41,34 @@ const saveDraft = async (formValues: BeneficiaryFormPayload, metadata: Beneficia
     metadata: metadataToPersist,
   };
   const { id, ...persistable } = record;
-  await setDoc(buildDocRef(normalizedMobile), persistable, { merge: true });
-  return { ...record, id };
+  
+  const { error } = await supabase
+    .from(COLLECTION_NAME)
+    .upsert({ id: normalizedMobile, ...persistable });
+
+  if (error) throw error;
+  return { ...record, id: normalizedMobile };
 };
 
 const getRecordByMobile = async (mobile: string): Promise<BeneficiaryRecord | null> => {
+  if (!supabase) throw new Error('Supabase not initialized');
+
   const normalizedMobile = normalizeMobile(mobile);
   if (!normalizedMobile) {
     return null;
   }
-  const snapshot = await getDoc(buildDocRef(normalizedMobile));
-  if (!snapshot.exists()) {
-    return null;
+  
+  const { data, error } = await supabase
+    .from(COLLECTION_NAME)
+    .select('*')
+    .eq('id', normalizedMobile)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
   }
-  return materializeRecord(snapshot);
+  return data as BeneficiaryRecord;
 };
 
 const getProfileByMobile = async (mobile: string): Promise<BeneficiaryProfile | null> => {
@@ -96,24 +88,48 @@ const getProfileByMobile = async (mobile: string): Promise<BeneficiaryProfile | 
   };
 };
 
-const buildListQuery = () => query(beneficiariesCollection, orderBy('metadata.createdAt', 'desc'));
-
 const listRecords = async (): Promise<BeneficiaryRecord[]> => {
-  const snapshot = await getDocs(buildListQuery());
-  return snapshot.docs.map(materializeRecord);
+  if (!supabase) throw new Error('Supabase not initialized');
+
+  const { data, error } = await supabase
+    .from(COLLECTION_NAME)
+    .select('*')
+    .order('metadata->createdAt', { ascending: false });
+
+  if (error) throw error;
+  return data as BeneficiaryRecord[];
 };
 
 const subscribeToRecords = (onData: (records: BeneficiaryRecord[]) => void, onError?: (error: Error) => void) => {
-  return onSnapshot(
-    buildListQuery(),
-    (snapshot) => {
-      const records = snapshot.docs.map(materializeRecord);
-      onData(records);
-    },
-    (error) => {
-      onError?.(error as Error);
-    }
-  );
+  if (!supabase) {
+    onData([]);
+    return () => undefined;
+  }
+
+  listRecords()
+    .then(onData)
+    .catch((err) => onError?.(err instanceof Error ? err : new Error(String(err))));
+
+  const channel = supabase
+    .channel('public:beneficiaries')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: COLLECTION_NAME,
+      },
+      () => {
+        listRecords()
+          .then(onData)
+          .catch((err) => onError?.(err instanceof Error ? err : new Error(String(err))));
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 };
 
 const subscribeToRecord = (
@@ -121,21 +137,38 @@ const subscribeToRecord = (
   onData: (record: BeneficiaryRecord | null) => void,
   onError?: (error: Error) => void
 ) => {
-  if (!recordId) {
+  if (!recordId || !supabase) {
     onData(null);
     return () => undefined;
   }
-  return onSnapshot(
-    buildDocRef(recordId),
-    (snapshot) => {
-      if (!snapshot.exists()) {
-        onData(null);
-        return;
+
+  getRecordByMobile(recordId)
+    .then(onData)
+    .catch((err) => onError?.(err instanceof Error ? err : new Error(String(err))));
+
+  const channel = supabase
+    .channel(`public:beneficiaries:${recordId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: COLLECTION_NAME,
+        filter: `id=eq.${recordId}`,
+      },
+      (payload) => {
+        if (payload.eventType === 'DELETE') {
+          onData(null);
+        } else {
+          onData(payload.new as BeneficiaryRecord);
+        }
       }
-      onData(materializeRecord(snapshot));
-    },
-    (error) => onError?.(error as Error)
-  );
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 };
 
 export const beneficiaryRepository = {

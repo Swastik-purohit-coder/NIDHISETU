@@ -1,259 +1,264 @@
-// ✅ FINAL MERGED FILE (CONFLICT-FREE)
+import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import type { DrawerNavigationProp, DrawerScreenProps } from '@react-navigation/drawer';
-import { useNavigation } from '@react-navigation/native';
-import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-
-import { AppButton } from '@/components/atoms/app-button';
-import { LoanDetailCard } from '@/components/molecules';
-import { VerificationProgress } from '@/components/molecules/verification-progress';
-import { SyncBanner } from '@/components/organisms';
-import { RequiredUploadsList, UploadRequirement } from '@/components/organisms/required-uploads-list';
-import { useBeneficiaryData } from '@/hooks/use-beneficiary-data';
-import { useSubmissions } from '@/hooks/use-submissions';
-import type { BeneficiaryDrawerParamList } from '@/navigation/types';
+import { AppIcon } from '@/components/atoms/app-icon';
+import { AppText } from '@/components/atoms/app-text';
+import { InfoCard } from '@/components/molecules/info-card';
 import { useAuthStore } from '@/state/authStore';
 
-import {
-  HeroSurface,
-  InfoRow,
-  Pill,
-  SectionCard,
-  ThemeToggleButton,
-  useBeneficiaryPalette
-} from './ui-kit';
-
-export type BeneficiaryDashboardScreenProps =
-  DrawerScreenProps<BeneficiaryDrawerParamList, 'BeneficiaryDashboard'>;
-
-const REQUIRED_ITEMS = [
-  { id: 'asset_photo', label: 'Asset Photo' },
-  { id: 'selfie_asset', label: 'Selfie with Asset' },
-  { id: 'invoice', label: 'Invoice/Bill' },
-  { id: 'workshop_photo', label: 'Workshop Photo' },
-];
-
 export const BeneficiaryDashboardScreen = () => {
-  const navigation = useNavigation<DrawerNavigationProp<BeneficiaryDrawerParamList>>();
-  const storedProfile = useAuthStore((state) => state.profile);
-  const { profile, loan, analytics, refetch } = useBeneficiaryData();
-  const { submissions, syncState, refresh: refreshSubmissions } = useSubmissions();
-  const palette = useBeneficiaryPalette();
+  const navigation = useNavigation();
+  const profile = useAuthStore((state) => state.profile);
 
-  const headerProfile = profile ?? storedProfile;
-  const beneficiaryProfile =
-    headerProfile?.role === 'beneficiary' ? headerProfile : undefined;
+  const menuItems = [
+    { title: 'Track Loan', icon: 'clipboard-text-clock-outline', color: '#A855F7' },
+    { title: 'Upload Evidence', icon: 'cloud-upload-outline', color: '#A855F7' },
+    { title: 'Geo-Camera', icon: 'camera-marker-outline', color: '#A855F7' },
+    { title: 'Notifications', icon: 'bell-outline', color: '#A855F7' },
+    { title: 'Contact Officer', icon: 'card-account-phone-outline', color: '#A855F7' },
+    { title: 'My Profile', icon: 'account-circle-outline', color: '#A855F7' },
+  ];
 
-  const handleRefresh = () => {
-    void Promise.all([refetch(), refreshSubmissions()]);
-  };
+  const newsItems = [
+    { title: 'Government updates', desc: 'Latest changes in MSME policies for 2025.', image: 'https://images.unsplash.com/photo-1526304640152-d4619684e484?auto=format&fit=crop&w=800&q=80' },
+    { title: 'Loan scheme policy changes', desc: 'New subsidy rates announced for rural sectors.', image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80' },
+  ];
 
-  const requirements: UploadRequirement[] = REQUIRED_ITEMS.map((item) => {
-    const submission = submissions.find((s) => s.assetName === item.label);
-    let status: UploadRequirement['status'] = 'pending';
-    if (submission) {
-      status = submission.status === 'rejected' ? 'rejected' : 'uploaded';
+  const trainingItems = [
+    { title: 'Job programs', image: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=800&q=80' },
+    { title: 'Learning videos', image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80' },
+    { title: 'Government skill centres', image: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80' },
+  ];
+
+  const calculatorItems = [
+    { title: 'EMI calculator', desc: 'Plan your repayment.', image: 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?auto=format&fit=crop&w=800&q=80' },
+    { title: 'Subsidy calculator', desc: 'Check your benefits.', image: 'https://images.unsplash.com/photo-1565514020176-dbf2277f241e?auto=format&fit=crop&w=800&q=80' },
+    { title: 'Eligibility prediction', desc: 'Know your chances.', image: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=800&q=80' },
+  ];
+
+  const grievanceItems = [
+    { title: 'Submit issue', desc: 'Face any problem? Let us know.', image: 'https://images.unsplash.com/photo-1534536281715-e28d76689b4d?auto=format&fit=crop&w=800&q=80' },
+    { title: 'Track complaint', desc: 'Check status of your tickets.', image: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=800&q=80' },
+    { title: 'Officer response', desc: 'View replies from officials.', image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=80' },
+  ];
+
+  const handleMenuPress = (title: string) => {
+    switch (title) {
+      case 'Track Loan':
+        navigation.navigate('PreviousSubmissions' as never);
+        break;
+      case 'Upload Evidence':
+        navigation.navigate('UploadEvidence' as never);
+        break;
+      case 'Geo-Camera':
+        navigation.navigate('LoanEvidenceCamera' as never);
+        break;
+      case 'Notifications':
+        navigation.navigate('Notifications' as never);
+        break;
+      case 'Contact Officer':
+        navigation.navigate('ContactOfficer' as never);
+        break;
+      case 'My Profile':
+        navigation.navigate('BeneficiaryProfile' as never);
+        break;
+      default:
+        console.warn('Unknown menu item:', title);
     }
-    return { ...item, status };
-  });
-
-  const completedCount = requirements.filter((r) => r.status === 'uploaded').length;
-  const progress = Math.round((completedCount / requirements.length) * 100);
-  const pendingCount = requirements.length - completedCount;
-
-  const handleUpload = (id: string, label: string) => {
-    navigation.navigate('UploadEvidence', { requirementId: id, requirementName: label });
   };
-
-  const syncTone = {
-    idle: 'default',
-    'in-progress': 'warning',
-    error: 'danger',
-    success: 'success',
-  } as const;
-
-  const syncLabel = useMemo(() => {
-    if (syncState.status === 'success' && syncState.lastSyncedAt) {
-      return `Synced · ${formatDate(syncState.lastSyncedAt)}`;
-    }
-    if (syncState.status === 'in-progress') return 'Syncing evidence…';
-    if (syncState.status === 'error') return 'Sync needs attention';
-    if (syncState.pendingCount) return `${syncState.pendingCount} uploads pending`;
-    return 'Ready to capture';
-  }, [syncState]);
-
-  const heroSummary = useMemo(() => {
-    if (progress >= 80) return 'Almost there—finish remaining uploads to keep Farmer Motion on track.';
-    if (progress >= 40) return 'Momentum looks good. Continue capturing geo-tagged evidence.';
-    return 'Let’s kick-start your checklist with fresh captures today.';
-  }, [progress]);
-
-  const loanAmountDisplay = formatCurrency(loan?.loanAmount);
-  const schemeLabel = loan?.scheme ?? beneficiaryProfile?.scheme ?? 'Scheme pending';
-  const districtLabel = beneficiaryProfile?.district ?? 'Farmer Motion';
 
   return (
-    <ScrollView
-      style={[styles.screen, { backgroundColor: palette.background }]}
-      contentContainerStyle={styles.content}
-      accessibilityLabel="Beneficiary dashboard"
-    >
-      <View style={styles.stack}>
-        {/* HERO SECTION */}
-        <HeroSurface>
-          <View style={styles.heroHeader}>
-            <View>
-              <Text style={[styles.eyebrow, { color: palette.subtext }]}>{districtLabel}</Text>
-              <Text style={[styles.heroTitle, { color: palette.text }]}>{headerProfile?.name ?? 'Beneficiary'}</Text>
-              <Text style={[styles.heroSubtitle, { color: palette.subtext }]}>{schemeLabel}</Text>
-            </View>
-
-            <View style={styles.heroHeaderActions}>
-              <ThemeToggleButton variant="icon" />
-              <Pill label={syncLabel} tone={syncTone[syncState.status]} />
-            </View>
-          </View>
-
-          <Text style={[styles.heroHint, { color: palette.text }]}>{heroSummary}</Text>
-
-          <View style={styles.heroMetricsRow}>
-            <HeroMetric label="Checklist" value={`${completedCount}/${requirements.length}`} palette={palette} />
-            <HeroMetric label="Loan" value={loanAmountDisplay} palette={palette} />
-            <HeroMetric label="Status" value={loan?.status ?? 'Pending'} palette={palette} />
-          </View>
-
-          <AppButton
-            label="Continue evidence capture"
-            variant="secondary"
-            onPress={() => navigation.navigate('UploadEvidence')}
-          />
-        </HeroSurface>
-
-        {/* VERIFICATION SECTION */}
-        <SectionCard
-          title="Verification pulse"
-          subtitle="Your checklist completion status"
-          accentLabel={`${progress}%`}
-          footer={
-            <View style={styles.inlineActions}>
-              <AppButton label="Refresh" variant="ghost" onPress={handleRefresh} />
-              <AppButton
-                label="Previous submissions"
-                variant="ghost"
-                onPress={() => navigation.navigate('PreviousSubmissions')}
-              />
-            </View>
-          }
-        >
-          <VerificationProgress percentage={progress} />
-          <View style={styles.statsRow}>
-            <InfoRow label="Completed" value={`${completedCount} items`} />
-            <InfoRow label="Pending" value={`${pendingCount} items`} />
-            <InfoRow label="Documents" value={`${analytics?.total ?? requirements.length} tracked`} />
-          </View>
-        </SectionCard>
-
-        {/* CHECKLIST */}
-        <SectionCard
-          title="Evidence checklist"
-          subtitle="Upload geo-tagged proof of asset ownership"
-          accentLabel={`${completedCount}/${requirements.length} done`}
-        >
-          <RequiredUploadsList requirements={requirements} onUpload={handleUpload} />
-        </SectionCard>
-
-        {/* LOAN */}
-        {loan && (
-          <SectionCard
-            title="Loan snapshot"
-            subtitle="Your loan details at a glance"
-            accentLabel={loan.status}
-            footer={
-              <AppButton
-                label="View loan details"
-                variant="ghost"
-                onPress={() => navigation.navigate('LoanDetails')}
-              />
-            }
-          >
-            <LoanDetailCard loan={loan} />
-          </SectionCard>
-        )}
-
-        {/* SYNC */}
-        <SectionCard
-          title="Sync & network"
-          subtitle="Make sure captures keep flowing"
-          accentLabel={syncState.status === 'in-progress' ? 'Syncing' : 'Status'}
-        >
-          <SyncBanner syncState={syncState} />
-          <View style={styles.statsRow}>
-            <InfoRow label="Pending" value={`${syncState.pendingCount ?? 0} uploads`} />
-            <InfoRow
-              label="Last sync"
-              value={syncState.lastSyncedAt ? formatTime(syncState.lastSyncedAt) : 'Not synced yet'}
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
+          <AppIcon name="menu" size={28} color="#333" />
+        </TouchableOpacity>
+        <View style={styles.userInfo}>
+            <Image 
+                source={{ uri: profile?.avatarUrl || 'https://randomuser.me/api/portraits/men/32.jpg' }} 
+                style={styles.avatar} 
             />
-            <InfoRow label="Errors" value={syncState.errorMessage ? 'Needs attention' : 'None'} />
-          </View>
-        </SectionCard>
+            <View>
+                <AppText style={styles.userName}>{profile?.name ?? 'Gokul Kumari'}</AppText>
+                <AppText style={styles.greeting}>Good morning</AppText>
+            </View>
+        </View>
+        <TouchableOpacity onPress={() => navigation.navigate('Notifications' as never)}>
+            <AppIcon name="bell-outline" size={24} color="#333" />
+            <View style={styles.badge} />
+        </TouchableOpacity>
       </View>
-    </ScrollView>
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        
+        {/* Grid Menu */}
+        <View style={styles.grid}>
+            {menuItems.map((item, index) => (
+                <TouchableOpacity key={index} style={styles.card} onPress={() => handleMenuPress(item.title)}>
+                    <View style={styles.iconContainer}>
+                        <AppIcon name={item.icon} size={32} color={item.color} />
+                    </View>
+                    <AppText style={styles.cardTitle}>{item.title}</AppText>
+                    <AppText style={styles.viewStatus}>View Status</AppText>
+                </TouchableOpacity>
+            ))}
+        </View>
+
+        {/* News & Announcements */}
+        <View style={styles.section}>
+            <AppText style={styles.sectionTitle}>News & Announcements</AppText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                {newsItems.map((item, index) => (
+                    <View key={index} style={styles.horizontalCardWrapper}>
+                        <InfoCard title={item.title} description={item.desc} image={item.image} variant="standard" />
+                    </View>
+                ))}
+            </ScrollView>
+        </View>
+
+        {/* Training & Skill Development */}
+        <View style={styles.section}>
+            <AppText style={styles.sectionTitle}>Training & Skill Development</AppText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                {trainingItems.map((item, index) => (
+                    <View key={index} style={styles.horizontalCardWrapper}>
+                        <InfoCard title={item.title} image={item.image} variant="overlay" />
+                    </View>
+                ))}
+            </ScrollView>
+        </View>
+
+        {/* Financial Calculator */}
+        <View style={styles.section}>
+            <AppText style={styles.sectionTitle}>Financial Calculator</AppText>
+            <View style={styles.verticalList}>
+                {calculatorItems.map((item, index) => (
+                    <InfoCard 
+                        key={index} 
+                        title={item.title} 
+                        description={item.desc} 
+                        image={item.image} 
+                        variant="standard" 
+                        style={{marginBottom: 16}} 
+                        onPress={() => {
+                            if (item.title === 'EMI calculator') {
+                                navigation.navigate('EmiCalculator' as never);
+                            }
+                        }}
+                    />
+                ))}
+            </View>
+        </View>
+
+        {/* Complaint / Grievance Redressal */}
+        <View style={styles.section}>
+            <AppText style={styles.sectionTitle}>Complaint / Grievance Redressal</AppText>
+            <View style={styles.verticalList}>
+                {grievanceItems.map((item, index) => (
+                    <InfoCard key={index} title={item.title} description={item.desc} image={item.image} variant="standard" style={{marginBottom: 16}} />
+                ))}
+            </View>
+        </View>
+        
+        <View style={{height: 100}} /> 
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 48 },
-  stack: { gap: 18 },
-
-  heroHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: 16 },
-  heroHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-
-  eyebrow: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  heroTitle: { fontSize: 24, fontWeight: '700' },
-  heroSubtitle: { fontSize: 14, marginTop: 4 },
-  heroHint: { fontSize: 14, opacity: 0.85 },
-
-  heroMetricsRow: { flexDirection: 'row', gap: 12 },
-  heroMetric: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 12,
-    gap: 4,
-  },
-  heroMetricLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8 },
-  heroMetricValue: { fontSize: 18, fontWeight: '600' },
-
-  statsRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 16 },
-  inlineActions: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+    container: {
+        flex: 1,
+        backgroundColor: '#F3F4F6',
+        paddingTop: 40,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+    },
+    userInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        flex: 1,
+        marginLeft: 10,
+    },
+    avatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+    },
+    userName: {
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    greeting: {
+        fontSize: 12,
+        color: '#666',
+    },
+    badge: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: 'red',
+    },
+    scrollContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 100,
+    },
+    grid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        gap: 10,
+        marginBottom: 20,
+    },
+    card: {
+        width: '48%',
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 16,
+        alignItems: 'center',
+        elevation: 2,
+        marginBottom: 10,
+    },
+    iconContainer: {
+        marginBottom: 10,
+    },
+    cardTitle: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 4,
+    },
+    viewStatus: {
+        fontSize: 10,
+        color: '#999',
+    },
+    section: {
+        marginBottom: 24,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 12,
+        color: '#1F2937',
+    },
+    horizontalScroll: {
+        paddingRight: 20,
+    },
+    horizontalCardWrapper: {
+        width: 280,
+        marginRight: 16,
+    },
+    verticalList: {
+        gap: 0,
+    },
 });
-
-const HeroMetric = ({
-  label,
-  value,
-  palette,
-}: {
-  label: string;
-  value: string;
-  palette: ReturnType<typeof useBeneficiaryPalette>;
-}) => (
-  <View
-    style={[
-      styles.heroMetric,
-      { borderColor: palette.border, backgroundColor: palette.mutedSurface },
-    ]}
-  >
-    <Text style={[styles.heroMetricLabel, { color: palette.subtext }]}>{label}</Text>
-    <Text style={[styles.heroMetricValue, { color: palette.text }]}>{value}</Text>
-  </View>
-);
-
-const formatCurrency = (val?: number) =>
-  typeof val === 'number'
-    ? `₹${Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(val)}`
-    : '—';
-
-const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
-const formatTime = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });

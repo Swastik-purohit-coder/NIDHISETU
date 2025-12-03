@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 // Point to your local backend (use your machine's IP if testing on physical device)
 // For Android Emulator, use 'http://10.0.2.2:3000'
 // For iOS Simulator, use 'http://localhost:3000'
-const BACKEND_URL = 'http://10.0.2.2:3000/api/loan-assistant';
+const BACKEND_URL = 'http://192.168.203.142:3000/api/loan-assistant';
 
 export type LoanAssistantMessage = {
   role: 'user' | 'assistant';

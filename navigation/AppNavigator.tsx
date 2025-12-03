@@ -1,3 +1,4 @@
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
     createDrawerNavigator,
     DrawerContentComponentProps,
@@ -23,6 +24,10 @@ import { LoanDetailsScreen } from '@/screens/beneficiary/loan-details-screen';
 import { LoanEvidenceCameraScreen } from '@/screens/beneficiary/loan-evidence-camera-screen';
 import { PreviousSubmissionsScreen } from '@/screens/beneficiary/previous-submissions-screen';
 import { BeneficiaryProfileScreen } from '@/screens/beneficiary/profile-screen';
+import { EditProfileScreen } from '@/screens/beneficiary/edit-profile-screen';
+import { EmiCalculatorScreen } from '@/screens/beneficiary/emi-calculator-screen';
+import { NotificationsScreen } from '@/screens/beneficiary/notifications-screen';
+import { ContactOfficerScreen } from '@/screens/beneficiary/contact-officer-screen';
 import { SyncStatusScreen } from '@/screens/beneficiary/sync-status-screen';
 import { UploadEvidenceScreen } from '@/screens/beneficiary/upload-evidence-screen';
 import { BeneficiaryFormScreen } from '@/screens/officer/beneficiary-form-screen';
@@ -45,6 +50,7 @@ const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const BeneficiaryDrawer = createDrawerNavigator<BeneficiaryDrawerParamList>();
 const OfficerDrawer = createDrawerNavigator<OfficerStackParamList>();
 const ReviewerStack = createNativeStackNavigator<ReviewerStackParamList>();
+const Tab = createBottomTabNavigator();
 
 const AuthNavigator = () => (
   <AuthStack.Navigator screenOptions={{ headerShown: false }}>
@@ -54,6 +60,75 @@ const AuthNavigator = () => (
     <AuthStack.Screen name="Onboarding" component={OnboardingScreen} />
   </AuthStack.Navigator>
 );
+
+const BeneficiaryTabNavigator = () => {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          position: 'absolute',
+          bottom: 20,
+          left: 20,
+          right: 20,
+          elevation: 5,
+          backgroundColor: '#ffffff',
+          borderRadius: 35,
+          height: 70,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 10,
+          borderTopWidth: 0,
+          paddingBottom: 0,
+          paddingTop: 0,
+        },
+        tabBarItemStyle: {
+          height: 70,
+          padding: 0,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        tabBarIconStyle: {
+          marginTop: 0,
+          marginBottom: 0,
+        },
+        tabBarShowLabel: false,
+        tabBarActiveTintColor: '#7C3AED',
+        tabBarInactiveTintColor: '#9CA3AF',
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={BeneficiaryDashboardScreen}
+        options={{
+          tabBarIcon: ({ color }) => <AppIcon name="home" size={32} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="NIDHIMITRA"
+        component={BeneficiaryLoanAssistantScreen}
+        options={{
+          tabBarIcon: ({ color }) => <AppIcon name="robot" size={32} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="UploadEvidence"
+        component={UploadEvidenceScreen}
+        options={{
+          tabBarIcon: ({ color }) => <AppIcon name="hand-coin" size={32} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={BeneficiaryProfileScreen}
+        options={{
+          tabBarIcon: ({ color }) => <AppIcon name="chart-pie" size={32} color={color} />,
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
 
 const beneficiaryIconMap = {
   BeneficiaryDashboard: 'view-dashboard',
@@ -72,22 +147,11 @@ const BeneficiaryNavigator = () => {
   return (
     <BeneficiaryDrawer.Navigator
       screenOptions={({ route, navigation }) => ({
-        headerStyle: { backgroundColor: theme.colors.card },
-        headerTintColor: theme.colors.text,
-        drawerActiveTintColor: theme.colors.primary,
-        drawerInactiveTintColor: theme.colors.muted,
-        drawerStyle: { backgroundColor: theme.colors.card },
+        headerShown: false,
+        drawerActiveTintColor: '#FFFFFF',
+        drawerInactiveTintColor: '#E9D5FF',
+        drawerStyle: { backgroundColor: '#7C3AED', width: '80%' },
         sceneContainerStyle: { backgroundColor: theme.colors.background },
-        headerLeft: () => (
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Open navigation"
-            style={[drawerStyles.menuButton, { borderColor: theme.colors.border }]}
-            onPress={() => navigation.toggleDrawer()}
-          >
-            <AppIcon name="menu" size={22} color="text" />
-          </TouchableOpacity>
-        ),
         drawerIcon: ({ color, size }) => (
           <AppIcon
             name={beneficiaryIconMap[route.name as keyof typeof beneficiaryIconMap] ?? 'folder'}
@@ -105,22 +169,81 @@ const BeneficiaryNavigator = () => {
         />
       )}
     >
-      <BeneficiaryDrawer.Screen name="BeneficiaryDashboard" component={BeneficiaryDashboardScreen} options={{ title: 'Dashboard' }} />
-      <BeneficiaryDrawer.Screen name="UploadEvidence" component={UploadEvidenceScreen} options={{ title: 'Upload Evidence' }} />
-      <BeneficiaryDrawer.Screen name="PreviousSubmissions" component={PreviousSubmissionsScreen} options={{ title: 'Submissions' }} />
-      <BeneficiaryDrawer.Screen name="SyncStatus" component={SyncStatusScreen} options={{ title: 'Sync Status' }} />
-      <BeneficiaryDrawer.Screen name="BeneficiaryProfile" component={BeneficiaryProfileScreen} options={{ title: 'Profile' }} />
-      <BeneficiaryDrawer.Screen name="LoanAssistant" component={BeneficiaryLoanAssistantScreen} options={{ title: 'Loan Copilot' }} />
-        <BeneficiaryDrawer.Screen name="LoanDetails" component={LoanDetailsScreen} options={{ title: 'Loan Details', drawerItemStyle: { display: 'none' } }} />
-        <BeneficiaryDrawer.Screen
-          name="LoanEvidenceCamera"
-          component={LoanEvidenceCameraScreen}
-          options={{
-            title: 'Capture Evidence',
-            drawerItemStyle: { display: 'none' },
-            headerShown: false,
-          }}
-        />
+      <BeneficiaryDrawer.Screen
+        name="BeneficiaryDashboard"
+        component={BeneficiaryTabNavigator}
+        options={{ title: 'Dashboard', drawerIcon: ({color}) => <AppIcon name="view-dashboard" size={24} color={color} /> }}
+      />
+      <BeneficiaryDrawer.Screen
+        name="BeneficiaryProfile"
+        component={BeneficiaryProfileScreen}
+        options={{ title: 'Profile', drawerIcon: ({color}) => <AppIcon name="account" size={24} color={color} /> }}
+      />
+      <BeneficiaryDrawer.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{
+          title: 'Edit Profile',
+          drawerItemStyle: { display: 'none' },
+          headerShown: false,
+        }}
+      />
+      <BeneficiaryDrawer.Screen
+        name="PreviousSubmissions"
+        component={PreviousSubmissionsScreen}
+        options={{ title: 'My Submissions', drawerIcon: ({color}) => <AppIcon name="history" size={24} color={color} /> }}
+      />
+      <BeneficiaryDrawer.Screen
+        name="SyncStatus"
+        component={SyncStatusScreen}
+        options={{ title: 'Download', drawerIcon: ({color}) => <AppIcon name="download" size={24} color={color} /> }}
+      />
+      <BeneficiaryDrawer.Screen
+        name="LoanAssistant"
+        component={BeneficiaryLoanAssistantScreen}
+        options={{ title: 'Support', drawerIcon: ({color}) => <AppIcon name="lifebuoy" size={24} color={color} /> }}
+      />
+      <BeneficiaryDrawer.Screen
+        name="LoanDetails"
+        component={LoanDetailsScreen}
+        options={{ title: 'Settings', drawerIcon: ({color}) => <AppIcon name="cog" size={24} color={color} /> }}
+      />
+      <BeneficiaryDrawer.Screen
+        name="LoanEvidenceCamera"
+        component={LoanEvidenceCameraScreen}
+        options={{
+          title: 'Capture Evidence',
+          drawerItemStyle: { display: 'none' },
+          headerShown: false,
+        }}
+      />
+      <BeneficiaryDrawer.Screen
+        name="EmiCalculator"
+        component={EmiCalculatorScreen}
+        options={{
+          title: 'EMI Calculator',
+          drawerItemStyle: { display: 'none' },
+          headerShown: false,
+        }}
+      />
+      <BeneficiaryDrawer.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{
+          title: 'Notifications',
+          drawerItemStyle: { display: 'none' },
+          headerShown: false,
+        }}
+      />
+      <BeneficiaryDrawer.Screen
+        name="ContactOfficer"
+        component={ContactOfficerScreen}
+        options={{
+          title: 'Contact Officer',
+          drawerItemStyle: { display: 'none' },
+          headerShown: false,
+        }}
+      />
     </BeneficiaryDrawer.Navigator>
   );
 };
@@ -243,29 +366,19 @@ const BeneficiaryDrawerContent = ({ beneficiaryName, beneficiaryVillage, onLogou
   };
 
   return (
-    <DrawerContentScrollView {...props} contentContainerStyle={drawerStyles.content}>
-      <View style={[drawerStyles.header, { backgroundColor: theme.colors.surface }]}>
-        <AppIcon name="account-circle" size={36} color="primary" />
-        <View style={{ flex: 1 }}>
-          <AppText variant="titleMedium" color="text">
-            {beneficiaryName}
-          </AppText>
-          {beneficiaryVillage ? (
-            <AppText variant="labelSmall" color="muted">
-              {beneficiaryVillage}
-            </AppText>
-          ) : null}
-        </View>
+    <View style={{ flex: 1, backgroundColor: '#7C3AED' }}>
+      <View style={{ padding: 24, paddingTop: 60 }}>
+        <AppText style={{ fontSize: 24, fontWeight: 'bold', color: '#FFFFFF' }}>NIDHISETU</AppText>
       </View>
-      <View style={drawerStyles.listWrapper}>
+      <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }}>
         <DrawerItemList {...props} />
+      </DrawerContentScrollView>
+      <View style={{ padding: 24, paddingBottom: 40 }}>
+        <TouchableOpacity onPress={handleLogout} style={{ alignSelf: 'flex-end', backgroundColor: '#333', padding: 12, borderRadius: 30 }}>
+          <AppIcon name="power" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
-      <DrawerItem
-        label="Logout"
-        icon={({ color, size }) => <AppIcon name="logout" size={size} color={color} />}
-        onPress={handleLogout}
-      />
-    </DrawerContentScrollView>
+    </View>
   );
 };
 

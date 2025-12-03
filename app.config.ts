@@ -15,7 +15,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supportsTablet: true,
   },
   android: {
-    googleServicesFile: './google-services.json',
     package: 'com.deepankar.nidhisetu',
     adaptiveIcon: {
       backgroundColor: '#021A2F',
@@ -38,8 +37,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         },
       },
     ],
-    '@react-native-firebase/app',
-    '@react-native-firebase/auth',
   ],
   experiments: {
     typedRoutes: true,

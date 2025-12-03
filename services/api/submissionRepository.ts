@@ -1,26 +1,7 @@
-import {
-    addDoc,
-    collection,
-    getDocs,
-    onSnapshot,
-    orderBy,
-    query,
-    serverTimestamp,
-    where,
-    type DocumentData,
-    type DocumentSnapshot,
-} from 'firebase/firestore';
-
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabaseClient';
 import type { NewSubmissionPayload, SubmissionEvidence } from '@/types/entities';
 
 const COLLECTION_NAME = 'submissions';
-const submissionsCollection = collection(db, COLLECTION_NAME);
-
-type SubmissionDocument = Omit<SubmissionEvidence, 'id'> & {
-  beneficiaryId: string;
-  createdAt?: unknown;
-};
 
 const ensureLocation = (location?: SubmissionEvidence['location']) => {
   if (location && typeof location.latitude === 'number' && typeof location.longitude === 'number') {
@@ -29,45 +10,34 @@ const ensureLocation = (location?: SubmissionEvidence['location']) => {
   return { latitude: 0, longitude: 0 } satisfies SubmissionEvidence['location'];
 };
 
-const toIsoString = (value?: unknown) => {
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (value && typeof (value as { toDate?: () => Date }).toDate === 'function') {
-    return (value as { toDate: () => Date }).toDate().toISOString();
-  }
-  return new Date().toISOString();
-};
-
-const materializeSubmission = (snapshot: DocumentSnapshot<DocumentData>) => {
-  const data = snapshot.data() as SubmissionDocument | undefined;
-  if (!data) {
-    throw new Error('Submission payload missing.');
-  }
+const materializeSubmission = (data: any): SubmissionEvidence => {
   return {
-    id: snapshot.id,
+    id: data.id,
     assetName: data.assetName ?? 'Evidence',
     mediaType: data.mediaType ?? 'photo',
     thumbnailUrl: data.thumbnailUrl,
     mediaUrl: data.mediaUrl,
-    capturedAt: toIsoString(data.capturedAt),
-    submittedAt: data.submittedAt ? toIsoString(data.submittedAt) : undefined,
+    capturedAt: data.capturedAt,
+    submittedAt: data.submittedAt,
     location: ensureLocation(data.location),
     remarks: data.remarks,
     status: data.status ?? 'pending',
     isDraft: data.isDraft,
     offlineId: data.offlineId,
-  } satisfies SubmissionEvidence;
+  };
 };
 
 const listByBeneficiary = async (beneficiaryId: string): Promise<SubmissionEvidence[]> => {
-  const q = query(
-    submissionsCollection,
-    where('beneficiaryId', '==', beneficiaryId),
-    orderBy('capturedAt', 'desc')
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(materializeSubmission);
+  if (!supabase) throw new Error('Supabase not initialized');
+  
+  const { data, error } = await supabase
+    .from(COLLECTION_NAME)
+    .select('*')
+    .eq('beneficiaryId', beneficiaryId)
+    .order('capturedAt', { ascending: false });
+
+  if (error) throw error;
+  return (data || []).map(materializeSubmission);
 };
 
 const subscribeToBeneficiarySubmissions = (
@@ -75,60 +45,66 @@ const subscribeToBeneficiarySubmissions = (
   onData: (submissions: SubmissionEvidence[]) => void,
   onError?: (error: Error) => void
 ) => {
-  if (!beneficiaryId) {
+  if (!beneficiaryId || !supabase) {
     onData([]);
     return () => undefined;
   }
-  const q = query(
-    submissionsCollection,
-    where('beneficiaryId', '==', beneficiaryId),
-    orderBy('capturedAt', 'desc')
-  );
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const submissions = snapshot.docs.map(materializeSubmission);
-      onData(submissions);
-    },
-    (error) => onError?.(error as Error)
-  );
+
+  // Initial fetch
+  listByBeneficiary(beneficiaryId)
+    .then(onData)
+    .catch((err) => onError?.(err instanceof Error ? err : new Error(String(err))));
+
+  const channel = supabase
+    .channel('public:submissions')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: COLLECTION_NAME,
+        filter: `beneficiaryId=eq.${beneficiaryId}`,
+      },
+      () => {
+        // Refresh data on any change
+        listByBeneficiary(beneficiaryId)
+          .then(onData)
+          .catch((err) => onError?.(err instanceof Error ? err : new Error(String(err))));
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 };
 
-const buildDocPayload = (beneficiaryId: string, payload: NewSubmissionPayload): SubmissionDocument => {
-  return {
+const createSubmission = async (beneficiaryId: string, payload: NewSubmissionPayload): Promise<SubmissionEvidence> => {
+  if (!supabase) throw new Error('Supabase not initialized');
+
+  const docPayload = {
     beneficiaryId,
     assetName: payload.assetName ?? 'Evidence',
     mediaType: payload.mediaType ?? 'photo',
     capturedAt: payload.capturedAt ?? new Date().toISOString(),
     submittedAt: payload.submittedAt ?? new Date().toISOString(),
     location: ensureLocation(payload.location),
-    remarks: payload.remarks,
-    thumbnailUrl: payload.thumbnailUrl,
-    mediaUrl: payload.mediaUrl,
+    remarks: payload.remarks ?? null,
+    thumbnailUrl: payload.thumbnailUrl ?? null,
+    mediaUrl: payload.mediaUrl ?? null,
     status: payload.status ?? 'submitted',
-    isDraft: payload.isDraft,
-    offlineId: payload.offlineId,
-    createdAt: serverTimestamp(),
-  } satisfies SubmissionDocument;
-};
+    isDraft: payload.isDraft ?? false,
+    offlineId: payload.offlineId ?? null,
+  };
 
-const createSubmission = async (beneficiaryId: string, payload: NewSubmissionPayload): Promise<SubmissionEvidence> => {
-  const docPayload = buildDocPayload(beneficiaryId, payload);
-  const docRef = await addDoc(submissionsCollection, docPayload);
-  return {
-    id: docRef.id,
-    assetName: docPayload.assetName,
-    mediaType: docPayload.mediaType,
-    thumbnailUrl: docPayload.thumbnailUrl,
-    mediaUrl: docPayload.mediaUrl,
-    capturedAt: docPayload.capturedAt,
-    submittedAt: docPayload.submittedAt,
-    location: docPayload.location,
-    remarks: docPayload.remarks,
-    status: docPayload.status,
-    isDraft: docPayload.isDraft,
-    offlineId: docPayload.offlineId,
-  } satisfies SubmissionEvidence;
+  const { data, error } = await supabase
+    .from(COLLECTION_NAME)
+    .insert(docPayload)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return materializeSubmission(data);
 };
 
 const createSubmissions = async (

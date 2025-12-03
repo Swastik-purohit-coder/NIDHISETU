@@ -70,16 +70,16 @@ export const OtpVerificationScreen = ({ navigation, route }: OtpVerificationScre
         <AppText style={styles.title}>Verify Phone Number</AppText>
 
         <AppText style={styles.description}>
-          A Four digit code has been sent to the {'\n'} + 91{mobile}
+          A 6-digit code has been sent to the {'\n'} + 91{mobile}
         </AppText>
 
         <AppText style={styles.instruction}>Kindly enter the code to continue.</AppText>
 
         <View style={styles.inputContainer}>
           <InputField
-            placeholder="0 0 0 0"
+            placeholder="0 0 0 0 0 0"
             keyboardType="number-pad"
-            maxLength={4}
+            maxLength={6}
             errorText={formErrors.otp?.message}
             onChangeText={(text) => setValue('otp', text)}
             inputStyle={styles.otpInput}

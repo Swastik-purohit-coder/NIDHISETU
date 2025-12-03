@@ -13,6 +13,8 @@ export const getStatusTone = (status: SubmissionStatus): ColorToken => {
       return 'error';
     case 'submitted':
       return 'secondary';
+    case 'pending':
+      return 'warning';
     default:
       return 'primary';
   }
@@ -21,7 +23,7 @@ export const getStatusTone = (status: SubmissionStatus): ColorToken => {
 export const getStatusLabel = (status: SubmissionStatus): string => {
   switch (status) {
     case 'approved':
-      return 'Approved';
+      return 'Officer Approved';
     case 'rejected':
       return 'Rejected';
     case 'syncing':
@@ -31,7 +33,7 @@ export const getStatusLabel = (status: SubmissionStatus): string => {
     case 'submitted':
       return 'Submitted';
     case 'pending':
-      return 'Draft Pending';
+      return 'Pending';
     default:
       return 'Pending';
   }

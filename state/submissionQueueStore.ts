@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { submissionRepository } from '@/services/api/submissionRepository';
 import type { NewSubmissionPayload, SubmissionEvidence, SubmissionStatus } from '@/types/entities';
+import { uploadEvidenceFile } from '@/utils/uploadHelper';
 
 export interface PendingSubmission extends SubmissionEvidence {
   offlineId: string;
@@ -71,7 +72,23 @@ export const useSubmissionQueueStore = create<SubmissionQueueState>()(
           }
           set({ syncStatus: 'syncing', error: undefined });
           try {
-            const payloads = pending.map((item) => ({
+            // Process uploads first
+            const processedPending = await Promise.all(pending.map(async (item) => {
+                let mediaUrl = item.mediaUrl;
+                if (mediaUrl && !mediaUrl.startsWith('http')) {
+                    try {
+                        mediaUrl = await uploadEvidenceFile(mediaUrl, item.beneficiaryId);
+                    } catch (e) {
+                        console.error('Failed to upload offline file during sync', e);
+                        // If upload fails, we might want to keep it pending or mark as failed
+                        // For now, we'll throw to stop the sync for this batch
+                        throw e;
+                    }
+                }
+                return { ...item, mediaUrl, thumbnailUrl: mediaUrl };
+            }));
+
+            const payloads = processedPending.map((item) => ({
               assetName: item.assetName,
               mediaType: item.mediaType,
               capturedAt: item.capturedAt,

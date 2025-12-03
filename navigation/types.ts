@@ -10,10 +10,14 @@ export type BeneficiaryDrawerParamList = {
   UploadEvidence: { requirementId?: string; requirementName?: string } | undefined;
   PreviousSubmissions: undefined;
   BeneficiaryProfile: undefined;
+  EditProfile: undefined;
   SyncStatus: undefined;
   LoanAssistant: undefined;
   LoanDetails: undefined;
   LoanEvidenceCamera: { requirementId?: string; requirementName?: string; loanId?: string } | undefined;
+  EmiCalculator: undefined;
+  Notifications: undefined;
+  ContactOfficer: undefined;
 };
 
 export type OfficerStackParamList = {

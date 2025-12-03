@@ -1,7 +1,6 @@
-import { ImageBackground, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-import { AppButton } from '@/components/atoms/app-button';
-import { AppIcon } from '@/components/atoms/app-icon';
 import { AppText } from '@/components/atoms/app-text';
 import { Chip } from '@/components/atoms/chip';
 import { useAppTheme } from '@/hooks/use-app-theme';
@@ -21,138 +20,142 @@ export const SubmissionCard = ({
   submission,
   onPressView,
   onPressRetry,
-  onPressApprove,
-  onPressReject,
   role = 'beneficiary',
 }: SubmissionCardProps) => {
   const theme = useAppTheme();
   const statusTone = getStatusTone(submission.status);
   const statusBackground = getStatusBackground(theme, submission.status);
 
+  const handlePress = () => {
+    if (submission.status === 'failed' || submission.status === 'rejected') {
+      onPressRetry?.(submission);
+    } else {
+      onPressView?.(submission);
+    }
+  };
+
   return (
-    <View style={[styles.card, { backgroundColor: theme.colors.card, borderRadius: theme.radii.lg }]}>
-      <View style={styles.headerRow}>
-        <AppText variant="titleSmall" color="text">
-          {submission.assetName}
-        </AppText>
-        <Chip
-          label={getStatusLabel(submission.status)}
-          tone={statusTone}
-          backgroundColor={statusBackground}
-        />
-      </View>
-      <View style={styles.mediaRow}>
-        <ImageBackground
+    <TouchableOpacity 
+      style={styles.card} 
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
+      {/* Left: Thumbnail */}
+      <View style={styles.thumbnailContainer}>
+        <Image
           source={{ uri: submission.thumbnailUrl ?? 'https://placehold.co/120x120?text=Asset' }}
-          style={[styles.thumbnail, { borderRadius: theme.radii.md }]}
-        >
-          <View style={[styles.mediaBadge, { backgroundColor: theme.colors.overlay }]}
-            accessibilityRole="text"
-            aria-label={`Media type ${submission.mediaType}`}
-          >
-            <AppIcon name={submission.mediaType === 'photo' ? 'camera' : 'video'} color="onPrimary" />
-            <AppText variant="labelSmall" color="onPrimary">
-              {submission.mediaType.toUpperCase()}
-            </AppText>
-          </View>
-        </ImageBackground>
-        <View style={styles.metaColumn}>
-          <LabelValue label="Captured" value={formatDate(submission.capturedAt)} />
-          <LabelValue label="GPS" value={`${submission.location.latitude.toFixed(4)}, ${submission.location.longitude.toFixed(4)}`} />
-          {submission.remarks ? <LabelValue label="Remarks" value={submission.remarks} multiline /> : null}
-          {submission.isDraft ? (
-            <Chip label="Local Draft" tone="warning" backgroundColor={theme.colors.warningContainer} />
-          ) : null}
+          style={styles.thumbnail}
+          resizeMode="cover"
+        />
+        <View style={styles.iconOverlay}>
+            <Ionicons name="camera" size={20} color="white" />
         </View>
       </View>
-      <View style={styles.actionsRow}>
-        <AppButton label="View" variant="outline" icon="eye" onPress={() => onPressView?.(submission)} />
-        {submission.status === 'failed' || submission.status === 'syncing' ? (
-          <AppButton label="Retry" icon="refresh" onPress={() => onPressRetry?.(submission)} />
-        ) : null}
-        {submission.status === 'rejected' ? (
-          <AppButton label="Re-upload" icon="camera" onPress={() => onPressRetry?.(submission)} />
-        ) : null}
-        {role === 'reviewer' && submission.status !== 'approved' ? (
-          <View style={styles.reviewerActions}>
-            <AppButton
-              label="Approve"
-              icon="check"
-              variant="secondary"
-              onPress={() => onPressApprove?.(submission)}
-            />
-            <AppButton
-              label="Reject"
-              icon="close"
-              variant="outline"
-              tone="error"
-              onPress={() => onPressReject?.(submission)}
-            />
-          </View>
-        ) : null}
+
+      {/* Right: Content */}
+      <View style={styles.contentContainer}>
+        {/* Row 1: Date & Status */}
+        <View style={styles.headerRow}>
+          <AppText style={styles.dateText}>
+            {new Date(submission.capturedAt).toLocaleString('en-GB', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </AppText>
+          <Chip
+            label={getStatusLabel(submission.status)}
+            tone={statusTone}
+            backgroundColor={statusBackground}
+            style={styles.statusChip}
+            textStyle={styles.statusText}
+          />
+        </View>
+
+        {/* Row 2: Asset Name */}
+        <AppText style={styles.assetName} numberOfLines={1}>
+          {submission.assetName}
+        </AppText>
+
+        {/* Row 3: Remarks */}
+        <AppText style={styles.remarks} numberOfLines={1}>
+          {submission.remarks || 'No remarks provided'}
+        </AppText>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
-const LabelValue = ({ label, value, multiline }: { label: string; value: string; multiline?: boolean }) => (
-  <View style={styles.labelValue}>
-    <AppText variant="labelSmall" color="muted">
-      {label}
-    </AppText>
-    <AppText variant="bodyMedium" color="text" numberOfLines={multiline ? undefined : 1}>
-      {value}
-    </AppText>
-  </View>
-);
-
-const formatDate = (value: string) => new Date(value).toLocaleString();
-
 const styles = StyleSheet.create({
   card: {
-    padding: 16,
-    gap: 12,
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    alignItems: 'center',
+  },
+  thumbnailContainer: {
+    position: 'relative',
+    marginRight: 16,
+  },
+  thumbnail: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+  },
+  iconOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 12,
+  },
+  contentContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 4,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 2,
   },
-  mediaRow: {
-    flexDirection: 'row',
-    gap: 12,
+  dateText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
   },
-  thumbnail: {
-    width: 120,
-    height: 120,
-    overflow: 'hidden',
-  },
-  mediaBadge: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
+  statusChip: {
     paddingVertical: 4,
-    borderRadius: 999,
+    paddingHorizontal: 8,
+    height: 24,
   },
-  metaColumn: {
-    flex: 1,
-    gap: 6,
+  statusText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
-  actionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  assetName: {
+    fontSize: 16,
+    color: '#374151',
+    fontWeight: '500',
   },
-  reviewerActions: {
-    flexDirection: 'row',
-    gap: 8,
-    flexShrink: 0,
-  },
-  labelValue: {
-    gap: 2,
+  remarks: {
+    fontSize: 14,
+    color: '#6B7280',
   },
 });

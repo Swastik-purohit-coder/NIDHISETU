@@ -1,233 +1,302 @@
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { LoanAssistantPanel } from '@/components/organisms/loan-assistant';
+import { AppIcon } from '@/components/atoms/app-icon';
+import { AppText } from '@/components/atoms/app-text';
+import { Chip } from '@/components/atoms/chip';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import { useBeneficiaryData } from '@/hooks/use-beneficiary-data';
 import { useAuthStore } from '@/state/authStore';
-
-import { HeroSurface, InfoRow, Pill, SectionCard, useBeneficiaryPalette } from './ui-kit';
+import { loanAssistantClient, LoanAssistantMessage } from '@/services/ai/loanAssistant';
 
 export const BeneficiaryLoanAssistantScreen = () => {
+  const theme = useAppTheme();
+  const { profile, loan } = useBeneficiaryData();
   const storedProfile = useAuthStore((state) => state.profile);
-  const { profile, loan, isLoading } = useBeneficiaryData();
-  const palette = useBeneficiaryPalette();
+  const beneficiaryName = profile?.name ?? storedProfile?.name;
 
-  const beneficiaryProfile = profile ?? storedProfile;
-  const beneficiaryDetails = beneficiaryProfile?.role === 'beneficiary' ? beneficiaryProfile : undefined;
-  const showLoadingOverlay = isLoading && !loan;
-  const formattedAmount = formatCurrency(loan?.loanAmount);
-  const assistantSummary = loan
-    ? `Gemini is tuned to your ${loan.scheme ?? 'loan'} details to guide documentation and disbursement.`
-    : 'Gemini watches your Farmer Motion progress and answers MSME compliance questions instantly.';
-  const insightPill = loan?.status ? `${loan.status}` : 'Loan assistant';
-  const contextRows = [
-    { label: 'Bank', value: loan?.bank ?? 'Not linked' },
-    { label: 'Scheme', value: loan?.scheme ?? 'MSME' },
-    { label: 'Advisor', value: beneficiaryDetails?.district ?? 'District officer' },
+  const [messages, setMessages] = useState<LoanAssistantMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const context = useMemo(
+    () => ({
+      beneficiaryName,
+      loanAmount: loan?.loanAmount,
+      bankName: loan?.bank
+    }),
+    [beneficiaryName, loan?.loanAmount, loan?.bank]
+  );
+
+  const suggestions = [
+    'Loan Status',
+    'Schemes',
+    'Eligibility',
+    'Documents',
+    'Subsidy',
+    'Repayment'
   ];
 
-  return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]}
-      accessibilityLabel="Loan assistant"
-    >
-      <View style={styles.wrapper}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          style={styles.scroll}
-          showsVerticalScrollIndicator={false}
-        >
-          <HeroSurface>
-            <View style={styles.heroHeader}>
-              <View>
-                <Text style={[styles.eyebrow, { color: palette.subtext }]}>Loan copilot</Text>
-                <Text style={[styles.heroTitle, { color: palette.text }]}>{beneficiaryProfile?.name ?? 'Beneficiary'}</Text>
-                <Text style={[styles.heroSubtitle, { color: palette.subtext }]}>MSME guidance desk</Text>
-              </View>
-            </View>
-            <Text style={[styles.heroBody, { color: palette.text }]}>{assistantSummary}</Text>
-            <View style={styles.heroPills}>
-              <Pill label={insightPill} tone="sky" />
-              <Pill label={beneficiaryDetails?.district ?? 'Your district desk'} tone="violet" />
-            </View>
-            <View style={styles.heroStats}>
-              <HeroMetric label="Loan" value={formattedAmount} palette={palette} />
-              <HeroMetric label="Bank" value={loan?.bank ?? '—'} palette={palette} />
-              <HeroMetric label="Status" value={loan?.status ?? 'Pending'} palette={palette} />
-            </View>
-          </HeroSurface>
+  const handleSend = async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
 
-          <SectionCard title="Context" subtitle="What Gemini knows about you" accentLabel="Live">
-            <View style={styles.infoGrid}>
-              {contextRows.map((row) => (
-                <InfoRow key={row.label} label={row.label} value={row.value} />
-              ))}
-            </View>
-          </SectionCard>
+    const newMsg: LoanAssistantMessage = { role: 'user', content: trimmed };
+    const nextMessages = [...messages, newMsg];
+    
+    setMessages(nextMessages);
+    setInput('');
+    setIsSending(true);
 
-          <SectionCard
-            title="Tips"
-            subtitle="Farmer motion best practices"
-            accentLabel="Recommended"
-          >
-            <View style={styles.tipList}>
-              {tips.map((tip) => (
-                <View key={tip.title} style={[styles.tipCard, { backgroundColor: palette.mutedSurface, borderColor: palette.border }]}
-                >
-                  <Text style={[styles.tipTitle, { color: palette.text }]}>{tip.title}</Text>
-                  <Text style={[styles.tipBody, { color: palette.subtext }]}>{tip.body}</Text>
-                </View>
-              ))}
-            </View>
-          </SectionCard>
+    try {
+      const reply = await loanAssistantClient.sendMessage(nextMessages, context);
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I'm having trouble connecting right now." }]);
+    } finally {
+      setIsSending(false);
+    }
+  };
 
-          <SectionCard
-            title="Loan copilot"
-            subtitle="Gemini chat guidance"
-            accentLabel="Live"
-          >
-            <LoanAssistantPanel
-              variant="embedded"
-              beneficiaryName={beneficiaryProfile?.name ?? undefined}
-              loanAmount={loan?.loanAmount}
-              bankName={loan?.bank}
-            />
-          </SectionCard>
-        </ScrollView>
+  useEffect(() => {
+    setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+  }, [messages, isSending]);
+
+  const renderWelcomeState = () => (
+    <View style={styles.welcomeContainer}>
+      <View style={styles.robotContainer}>
+         <AppIcon name="robot" size={120} color={theme.colors.primary} />
       </View>
-      {showLoadingOverlay ? (
-        <View style={[styles.loadingOverlay, { backgroundColor: palette.background + 'CC' }]}
-          pointerEvents="none"
-        >
-          <ActivityIndicator color={palette.accent} size="large" />
+      
+      <View style={styles.welcomeBubble}>
+        <AppIcon name="auto-awesome" size={20} color={theme.colors.primary} style={{marginRight: 8}}/>
+        <AppText style={styles.welcomeText}>
+          Hi {beneficiaryName ? beneficiaryName.split(' ')[0] : ''}, you can ask me anything about your loan
+        </AppText>
+      </View>
+
+      <View style={styles.suggestionsContainer}>
+        <View style={styles.suggestionHeader}>
+            <AppIcon name="lightbulb-on-outline" size={20} color={theme.colors.primary} />
+            <AppText style={styles.suggestionTitle}>I suggest some topics you can ask me..</AppText>
         </View>
-      ) : null}
+        <View style={styles.chipsGrid}>
+          {suggestions.map((s) => (
+            <Chip 
+              key={s} 
+              label={s} 
+              onPress={() => handleSend(s)}
+              style={styles.chip}
+              backgroundColor={theme.colors.surfaceVariant}
+              tone="primary"
+            />
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: '#F8F9FE' }]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <AppText style={styles.headerTitle}>NIDHIMITRA</AppText>
+        <TouchableOpacity>
+            <AppIcon name="message-text-outline" size={24} color={theme.colors.text} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView 
+        ref={scrollViewRef}
+        contentContainerStyle={styles.scrollContent}
+        style={styles.scrollView}
+      >
+        {messages.length === 0 ? renderWelcomeState() : (
+            <View style={styles.messagesList}>
+                {messages.map((msg, idx) => (
+                    <View key={idx} style={[
+                        styles.messageBubble,
+                        msg.role === 'user' ? styles.userBubble : styles.botBubble,
+                        msg.role === 'user' ? { backgroundColor: theme.colors.primary } : { backgroundColor: '#FFFFFF' }
+                    ]}>
+                        <AppText style={[
+                            styles.messageText,
+                            msg.role === 'user' ? { color: '#FFFFFF' } : { color: '#1F2937' }
+                        ]}>
+                            {msg.content}
+                        </AppText>
+                    </View>
+                ))}
+                {isSending && (
+                    <View style={[styles.messageBubble, styles.botBubble, { backgroundColor: '#FFFFFF' }]}>
+                        <ActivityIndicator color={theme.colors.primary} size="small" />
+                    </View>
+                )}
+            </View>
+        )}
+      </ScrollView>
+
+      {/* Input Area */}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={[styles.inputContainer, { backgroundColor: '#FFFFFF' }]}>
+            <TextInput
+                style={styles.input}
+                placeholder="Ask anything..."
+                placeholderTextColor="#9CA3AF"
+                value={input}
+                onChangeText={setInput}
+            />
+            <TouchableOpacity style={styles.micButton}>
+                <AppIcon name="microphone" size={24} color={theme.colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+                style={[styles.sendButton, { backgroundColor: theme.colors.primary }]}
+                onPress={() => handleSend(input)}
+            >
+                <AppIcon name="send" size={20} color="#FFF" />
+            </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
   },
-  wrapper: {
-    flex: 1,
-  },
-  scroll: {
-    flexGrow: 0,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    gap: 18,
-  },
-  heroHeader: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 16,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
   },
-  eyebrow: {
-    fontSize: 12,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  heroTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    marginTop: 4,
-  },
-  heroBody: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  heroPills: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  heroStats: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  infoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  tipList: {
-    gap: 12,
-  },
-  tipCard: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 14,
-    gap: 6,
-  },
-  tipTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  tipBody: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  metricCard: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 12,
-    gap: 4,
-  },
-  metricLabel: {
-    fontSize: 11,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  metricValue: {
+  headerTitle: {
     fontSize: 18,
     fontWeight: '600',
   },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 200, // Extra padding for bottom tabs
+  },
+  welcomeContainer: {
+    alignItems: 'center',
+    paddingTop: 40,
+    paddingHorizontal: 20,
+  },
+  robotContainer: {
+    marginBottom: 30,
+  },
+  welcomeBubble: {
+    flexDirection: 'row',
+    backgroundColor: '#F3E8FF', // Light purple
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 30,
+    alignItems: 'center',
+    width: '100%',
+  },
+  welcomeText: {
+    fontSize: 16,
+    color: '#4B5563',
+    flex: 1,
+  },
+  suggestionsContainer: {
+    width: '100%',
+  },
+  suggestionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  suggestionTitle: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  chipsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+    position: 'absolute',
+    bottom: 110,
+    left: 20,
+    right: 20,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 10,
+    color: '#1F2937',
+    marginLeft: 8,
+  },
+  micButton: {
+    padding: 10,
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 8,
+  },
+  messagesList: {
+    padding: 20,
+    gap: 16,
+  },
+  messageBubble: {
+    padding: 16,
+    borderRadius: 16,
+    maxWidth: '80%',
+  },
+  userBubble: {
+    alignSelf: 'flex-end',
+    borderBottomRightRadius: 4,
+  },
+  botBubble: {
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  messageText: {
+    fontSize: 15,
+    lineHeight: 22,
   },
 });
-
-const HeroMetric = ({ label, value, palette }: { label: string; value: string; palette: ReturnType<typeof useBeneficiaryPalette> }) => (
-  <View style={[styles.metricCard, { backgroundColor: palette.mutedSurface, borderColor: palette.border }]}
-    accessibilityLabel={label}
-  >
-    <Text style={[styles.metricLabel, { color: palette.subtext }]}>{label}</Text>
-    <Text style={[styles.metricValue, { color: palette.text }]}>{value}</Text>
-  </View>
-);
-
-const tips = [
-  {
-    title: 'Record geo evidence by noon',
-    body: 'Natural light improves AI verification accuracy for pumpsets and assets.',
-  },
-  {
-    title: 'Batch upload invoices',
-    body: 'Use the multi-upload option to send related documents in one go for quicker sanction review.',
-  },
-  {
-    title: 'Keep Twilio OTP handy',
-    body: 'If you lose network, the assistant stores drafts and syncs automatically once back online.',
-  },
-];
-
-const formatCurrency = (value?: number) => {
-  if (typeof value !== 'number') {
-    return '—';
-  }
-  try {
-    return `₹${Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(value)}`;
-  } catch {
-    return `₹${value}`;
-  }
-};

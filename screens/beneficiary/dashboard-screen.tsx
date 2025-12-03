@@ -1,3 +1,5 @@
+// ✅ FINAL MERGED FILE (CONFLICT-FREE)
+
 import type { DrawerNavigationProp, DrawerScreenProps } from '@react-navigation/drawer';
 import { useNavigation } from '@react-navigation/native';
 import React, { useMemo } from 'react';
@@ -13,9 +15,17 @@ import { useSubmissions } from '@/hooks/use-submissions';
 import type { BeneficiaryDrawerParamList } from '@/navigation/types';
 import { useAuthStore } from '@/state/authStore';
 
-import { HeroSurface, InfoRow, Pill, SectionCard, ThemeToggleButton, useBeneficiaryPalette } from './ui-kit';
+import {
+  HeroSurface,
+  InfoRow,
+  Pill,
+  SectionCard,
+  ThemeToggleButton,
+  useBeneficiaryPalette
+} from './ui-kit';
 
-export type BeneficiaryDashboardScreenProps = DrawerScreenProps<BeneficiaryDrawerParamList, 'BeneficiaryDashboard'>;
+export type BeneficiaryDashboardScreenProps =
+  DrawerScreenProps<BeneficiaryDrawerParamList, 'BeneficiaryDashboard'>;
 
 const REQUIRED_ITEMS = [
   { id: 'asset_photo', label: 'Asset Photo' },
@@ -32,14 +42,14 @@ export const BeneficiaryDashboardScreen = () => {
   const palette = useBeneficiaryPalette();
 
   const headerProfile = profile ?? storedProfile;
-  const beneficiaryProfile = headerProfile?.role === 'beneficiary' ? headerProfile : undefined;
+  const beneficiaryProfile =
+    headerProfile?.role === 'beneficiary' ? headerProfile : undefined;
 
   const handleRefresh = () => {
     void Promise.all([refetch(), refreshSubmissions()]);
   };
 
   const requirements: UploadRequirement[] = REQUIRED_ITEMS.map((item) => {
-    // Simple matching logic - in real app, use IDs or types
     const submission = submissions.find((s) => s.assetName === item.label);
     let status: UploadRequirement['status'] = 'pending';
     if (submission) {
@@ -56,36 +66,26 @@ export const BeneficiaryDashboardScreen = () => {
     navigation.navigate('UploadEvidence', { requirementId: id, requirementName: label });
   };
 
-  const syncTone: Record<typeof syncState.status, 'default' | 'warning' | 'danger' | 'success'> = {
+  const syncTone = {
     idle: 'default',
     'in-progress': 'warning',
     error: 'danger',
     success: 'success',
-  };
+  } as const;
 
   const syncLabel = useMemo(() => {
     if (syncState.status === 'success' && syncState.lastSyncedAt) {
       return `Synced · ${formatDate(syncState.lastSyncedAt)}`;
     }
-    if (syncState.status === 'in-progress') {
-      return 'Syncing evidence…';
-    }
-    if (syncState.status === 'error') {
-      return 'Sync needs attention';
-    }
-    if (syncState.pendingCount) {
-      return `${syncState.pendingCount} uploads pending`;
-    }
+    if (syncState.status === 'in-progress') return 'Syncing evidence…';
+    if (syncState.status === 'error') return 'Sync needs attention';
+    if (syncState.pendingCount) return `${syncState.pendingCount} uploads pending`;
     return 'Ready to capture';
   }, [syncState]);
 
   const heroSummary = useMemo(() => {
-    if (progress >= 80) {
-      return 'Almost there—finish remaining uploads to keep Farmer Motion on track.';
-    }
-    if (progress >= 40) {
-      return 'Momentum looks good. Continue capturing geo-tagged evidence.';
-    }
+    if (progress >= 80) return 'Almost there—finish remaining uploads to keep Farmer Motion on track.';
+    if (progress >= 40) return 'Momentum looks good. Continue capturing geo-tagged evidence.';
     return 'Let’s kick-start your checklist with fresh captures today.';
   }, [progress]);
 
@@ -100,6 +100,7 @@ export const BeneficiaryDashboardScreen = () => {
       accessibilityLabel="Beneficiary dashboard"
     >
       <View style={styles.stack}>
+        {/* HERO SECTION */}
         <HeroSurface>
           <View style={styles.heroHeader}>
             <View>
@@ -107,17 +108,21 @@ export const BeneficiaryDashboardScreen = () => {
               <Text style={[styles.heroTitle, { color: palette.text }]}>{headerProfile?.name ?? 'Beneficiary'}</Text>
               <Text style={[styles.heroSubtitle, { color: palette.subtext }]}>{schemeLabel}</Text>
             </View>
+
             <View style={styles.heroHeaderActions}>
               <ThemeToggleButton variant="icon" />
               <Pill label={syncLabel} tone={syncTone[syncState.status]} />
             </View>
           </View>
+
           <Text style={[styles.heroHint, { color: palette.text }]}>{heroSummary}</Text>
+
           <View style={styles.heroMetricsRow}>
             <HeroMetric label="Checklist" value={`${completedCount}/${requirements.length}`} palette={palette} />
             <HeroMetric label="Loan" value={loanAmountDisplay} palette={palette} />
             <HeroMetric label="Status" value={loan?.status ?? 'Pending'} palette={palette} />
           </View>
+
           <AppButton
             label="Continue evidence capture"
             variant="secondary"
@@ -125,14 +130,19 @@ export const BeneficiaryDashboardScreen = () => {
           />
         </HeroSurface>
 
+        {/* VERIFICATION SECTION */}
         <SectionCard
           title="Verification pulse"
-          subtitle=" Your checklist completion status"
+          subtitle="Your checklist completion status"
           accentLabel={`${progress}%`}
           footer={
             <View style={styles.inlineActions}>
               <AppButton label="Refresh" variant="ghost" onPress={handleRefresh} />
-              <AppButton label="Previous submissions" variant="ghost" onPress={() => navigation.navigate('PreviousSubmissions')} />
+              <AppButton
+                label="Previous submissions"
+                variant="ghost"
+                onPress={() => navigation.navigate('PreviousSubmissions')}
+              />
             </View>
           }
         >
@@ -144,25 +154,34 @@ export const BeneficiaryDashboardScreen = () => {
           </View>
         </SectionCard>
 
+        {/* CHECKLIST */}
         <SectionCard
           title="Evidence checklist"
-          subtitle="Upload geo-tagged proof  of asset ownership"
+          subtitle="Upload geo-tagged proof of asset ownership"
           accentLabel={`${completedCount}/${requirements.length} done`}
         >
           <RequiredUploadsList requirements={requirements} onUpload={handleUpload} />
         </SectionCard>
 
-        {loan ? (
+        {/* LOAN */}
+        {loan && (
           <SectionCard
             title="Loan snapshot"
-            subtitle=" Your loan details at a glance"
+            subtitle="Your loan details at a glance"
             accentLabel={loan.status}
-            footer={<AppButton label="View loan details" variant="ghost" onPress={() => navigation.navigate('LoanDetails')} />}
+            footer={
+              <AppButton
+                label="View loan details"
+                variant="ghost"
+                onPress={() => navigation.navigate('LoanDetails')}
+              />
+            }
           >
             <LoanDetailCard loan={loan} />
           </SectionCard>
-        ) : null}
+        )}
 
+        {/* SYNC */}
         <SectionCard
           title="Sync & network"
           subtitle="Make sure captures keep flowing"
@@ -171,7 +190,10 @@ export const BeneficiaryDashboardScreen = () => {
           <SyncBanner syncState={syncState} />
           <View style={styles.statsRow}>
             <InfoRow label="Pending" value={`${syncState.pendingCount ?? 0} uploads`} />
-            <InfoRow label="Last sync" value={syncState.lastSyncedAt ? formatTime(syncState.lastSyncedAt) : 'Not synced yet'} />
+            <InfoRow
+              label="Last sync"
+              value={syncState.lastSyncedAt ? formatTime(syncState.lastSyncedAt) : 'Not synced yet'}
+            />
             <InfoRow label="Errors" value={syncState.errorMessage ? 'Needs attention' : 'None'} />
           </View>
         </SectionCard>
@@ -181,48 +203,19 @@ export const BeneficiaryDashboardScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 48,
-  },
-  stack: {
-    gap: 18,
-  },
-  heroHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  heroHeaderActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  eyebrow: {
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  heroTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    marginTop: 4,
-  },
-  heroHint: {
-    fontSize: 14,
-    opacity: 0.85,
-  },
-  heroMetricsRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  screen: { flex: 1 },
+  content: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 48 },
+  stack: { gap: 18 },
+
+  heroHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: 16 },
+  heroHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+
+  eyebrow: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  heroTitle: { fontSize: 24, fontWeight: '700' },
+  heroSubtitle: { fontSize: 14, marginTop: 4 },
+  heroHint: { fontSize: 14, opacity: 0.85 },
+
+  heroMetricsRow: { flexDirection: 'row', gap: 12 },
   heroMetric: {
     flex: 1,
     borderWidth: 1,
@@ -230,61 +223,37 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 4,
   },
-  heroMetricLabel: {
-    fontSize: 11,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  heroMetricValue: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  inlineActions: {
-    flexDirection: 'row',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
+  heroMetricLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8 },
+  heroMetricValue: { fontSize: 18, fontWeight: '600' },
+
+  statsRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 16 },
+  inlineActions: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
 });
 
-const HeroMetric = ({ label, value, palette }: { label: string; value: string; palette: ReturnType<typeof useBeneficiaryPalette> }) => (
-  <View style={[styles.heroMetric, { borderColor: palette.border, backgroundColor: palette.mutedSurface }]}
-    accessibilityLabel={label}
+const HeroMetric = ({
+  label,
+  value,
+  palette,
+}: {
+  label: string;
+  value: string;
+  palette: ReturnType<typeof useBeneficiaryPalette>;
+}) => (
+  <View
+    style={[
+      styles.heroMetric,
+      { borderColor: palette.border, backgroundColor: palette.mutedSurface },
+    ]}
   >
     <Text style={[styles.heroMetricLabel, { color: palette.subtext }]}>{label}</Text>
     <Text style={[styles.heroMetricValue, { color: palette.text }]}>{value}</Text>
   </View>
 );
 
-const formatCurrency = (value?: number) => {
-  if (typeof value !== 'number') {
-    return '—';
-  }
-  try {
-    return `₹${Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(value)}`;
-  } catch {
-    return `₹${value}`;
-  }
-};
+const formatCurrency = (val?: number) =>
+  typeof val === 'number'
+    ? `₹${Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(val)}`
+    : '—';
 
-const formatDate = (iso: string) => {
-  try {
-    const date = new Date(iso);
-    return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
-  } catch {
-    return iso;
-  }
-};
-
-const formatTime = (iso: string) => {
-  try {
-    const date = new Date(iso);
-    return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return iso;
-  }
-};
+const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+const formatTime = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });

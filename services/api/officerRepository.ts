@@ -99,7 +99,7 @@ const subscribeToProfile = (
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    supabase?.removeChannel(channel);
   };
 };
 

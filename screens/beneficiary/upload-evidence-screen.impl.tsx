@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, TextInput, Image, Alert, Modal, FlatList, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, TextInput, Image, Alert, Modal, FlatList, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,7 +29,17 @@ const ASSET_CATEGORIES = [
   "Construction Progress"
 ];
 
-export const UploadEvidenceScreen = ({ navigation, route }: any) => {
+export type UploadEvidenceScreenProps = {
+  navigation: any;
+  route: {
+    params?: {
+      requirementId?: string;
+      requirementName?: string;
+    };
+  };
+};
+
+export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreenProps) => {
   const { requirementId, requirementName } = route.params || {};
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [assetCategory, setAssetCategory] = useState(requirementName || 'Machinery');
@@ -95,7 +105,7 @@ export const UploadEvidenceScreen = ({ navigation, route }: any) => {
       setLocation(loc);
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
         quality: 0.7,
       });

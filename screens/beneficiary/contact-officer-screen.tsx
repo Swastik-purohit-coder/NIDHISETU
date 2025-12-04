@@ -67,14 +67,14 @@ export const ContactOfficerScreen = ({ navigation }: any) => {
               label="Call Officer" 
               onPress={handleCall} 
               style={styles.callButton}
-              icon={<Ionicons name="call" size={20} color="white" style={{marginRight: 8}} />}
+              icon="phone"
             />
             <AppButton 
               label="Send Email" 
               onPress={handleEmail} 
               style={styles.emailButton}
-              textStyle={{color: '#008080'}}
-              icon={<Ionicons name="mail" size={20} color="#008080" style={{marginRight: 8}} />}
+              textStyle={{ color: '#008080' }}
+              icon="email-outline"
             />
           </View>
         </View>

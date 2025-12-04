@@ -80,7 +80,7 @@ export const BeneficiaryLoanAssistantScreen = () => {
       </View>
       
       <View style={styles.welcomeBubble}>
-        <AppIcon name="auto-awesome" size={20} color={theme.colors.primary} style={{marginRight: 8}}/>
+        <AppIcon name="auto-fix" size={20} color={theme.colors.primary} style={{marginRight: 8}}/>
         <AppText style={styles.welcomeText}>
           Hi {beneficiaryName ? beneficiaryName.split(' ')[0] : ''}, you can ask me anything about your loan
         </AppText>

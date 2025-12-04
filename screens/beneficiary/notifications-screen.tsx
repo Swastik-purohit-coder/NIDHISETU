@@ -3,7 +3,6 @@ import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/components/atoms/app-text';
-import { theme } from '@/constants/theme';
 
 const MOCK_NOTIFICATIONS = [
   {

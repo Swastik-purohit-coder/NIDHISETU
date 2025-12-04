@@ -26,6 +26,8 @@ import { PreviousSubmissionsScreen } from '@/screens/beneficiary/previous-submis
 import { BeneficiaryProfileScreen } from '@/screens/beneficiary/profile-screen';
 import { EditProfileScreen } from '@/screens/beneficiary/edit-profile-screen';
 import { EmiCalculatorScreen } from '@/screens/beneficiary/emi-calculator-screen';
+import { SubsidyCalculatorScreen } from '@/screens/beneficiary/subsidy-calculator-screen';
+import { EligibilityPredictionScreen } from '@/screens/beneficiary/eligibility-prediction-screen';
 import { NotificationsScreen } from '@/screens/beneficiary/notifications-screen';
 import { ContactOfficerScreen } from '@/screens/beneficiary/contact-officer-screen';
 import { SyncStatusScreen } from '@/screens/beneficiary/sync-status-screen';
@@ -224,6 +226,24 @@ const BeneficiaryNavigator = () => {
         component={EmiCalculatorScreen}
         options={{
           title: 'EMI Calculator',
+          drawerItemStyle: { display: 'none' },
+          headerShown: false,
+        }}
+      />
+      <BeneficiaryDrawer.Screen
+        name="SubsidyCalculator"
+        component={SubsidyCalculatorScreen}
+        options={{
+          title: 'Subsidy Calculator',
+          drawerItemStyle: { display: 'none' },
+          headerShown: false,
+        }}
+      />
+      <BeneficiaryDrawer.Screen
+        name="EligibilityPrediction"
+        component={EligibilityPredictionScreen}
+        options={{
+          title: 'Eligibility Prediction',
           drawerItemStyle: { display: 'none' },
           headerShown: false,
         }}

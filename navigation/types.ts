@@ -16,6 +16,8 @@ export type BeneficiaryDrawerParamList = {
   LoanDetails: undefined;
   LoanEvidenceCamera: { requirementId?: string; requirementName?: string; loanId?: string } | undefined;
   EmiCalculator: undefined;
+  SubsidyCalculator: undefined;
+  EligibilityPrediction: undefined;
   Notifications: undefined;
   ContactOfficer: undefined;
 };

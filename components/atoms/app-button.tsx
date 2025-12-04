@@ -1,4 +1,4 @@
-import type { PressableProps, PressableStateCallbackType, StyleProp, ViewStyle } from 'react-native';
+import type { PressableProps, PressableStateCallbackType, StyleProp, TextStyle, ViewStyle } from 'react-native';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import type { ColorToken } from '@/constants/theme';
@@ -16,6 +16,10 @@ export type AppButtonProps = PressableProps & {
   loading?: boolean;
   compact?: boolean;
   tone?: ColorToken;
+  /** Optional override for the label typography. */
+  labelStyle?: StyleProp<TextStyle>;
+  /** Backwards-compatible alias for labelStyle so screen code can keep using textStyle. */
+  textStyle?: StyleProp<TextStyle>;
 };
 
 export const AppButton = ({
@@ -28,6 +32,8 @@ export const AppButton = ({
   compact,
   tone = 'primary',
   style,
+  labelStyle,
+  textStyle,
   ...rest
 }: AppButtonProps) => {
   const theme = useAppTheme();
@@ -82,7 +88,11 @@ export const AppButton = ({
         {loading ? (
           <ActivityIndicator size="small" color={textColor} />
         ) : (
-          <AppText variant="labelLarge" color={textColor} style={styles.label}>
+          <AppText
+            variant="labelLarge"
+            color={textColor}
+            style={[styles.label, labelStyle, textStyle]}
+          >
             {label}
           </AppText>
         )}

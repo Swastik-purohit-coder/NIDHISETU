@@ -10,54 +10,57 @@ import type { BeneficiaryProfile } from '@/types/entities';
 const COLLECTION_NAME = 'beneficiaries';
 
 const cleanContext = (context?: OfficerContext): OfficerContext | undefined => {
-  if (!context) return undefined;
+  if (!context) {
+    return undefined;
+  }
   const entries = Object.entries(context).filter(([, value]) => Boolean(value));
   return entries.length ? (Object.fromEntries(entries) as OfficerContext) : undefined;
 };
 
 const normalizeMobile = (mobile: string) => mobile.replace(/[^0-9]/g, '');
 
-const toDbPayload = (payload: BeneficiaryFormPayload & { id: string; metadata: BeneficiaryMetadata }) => {
-  return {
-    id: payload.id,
-    full_name: payload.fullName,
-    aadhaar: payload.aadhaar,
-    address: payload.address,
-    asset_name: payload.assetName,
-    asset_value: payload.assetValue,
-    bank_name: payload.bankName,
-    sanction_amount: payload.sanctionAmount,
-    village: payload.village,
-    mobile: payload.mobile,
-    metadata: payload.metadata,
-  };
-};
+const toDbPayload = (payload: BeneficiaryFormPayload & { id: string; metadata: BeneficiaryMetadata }) => ({
+  id: payload.id,
+  full_name: payload.fullName,
+  aadhaar: payload.aadhaar,
+  address: payload.address,
+  asset_name: payload.assetName,
+  asset_value: payload.assetValue,
+  bank_name: payload.bankName,
+  sanction_amount: payload.sanctionAmount,
+  village: payload.village,
+  mobile: payload.mobile,
+  metadata: payload.metadata,
+});
 
-const fromDbRecord = (record: any): BeneficiaryRecord => {
-  return {
-    id: record.id,
-    fullName: record.full_name,
-    aadhaar: record.aadhaar,
-    address: record.address,
-    assetName: record.asset_name,
-    assetValue: record.asset_value || 0,
-    bankName: record.bank_name,
-    sanctionAmount: record.sanction_amount || 0,
-    disbursedAmount: record.disbursed_amount || 0,
-    emiAmount: record.emi_amount || 0,
-    village: record.village,
-    mobile: record.mobile,
-    metadata: record.metadata || {},
-    schemeName: record.scheme_name,
-    district: record.district,
-  } as BeneficiaryRecord;
-};
+const fromDbRecord = (record: any): BeneficiaryRecord => ({
+  id: record.id,
+  fullName: record.full_name,
+  aadhaar: record.aadhaar,
+  address: record.address,
+  assetName: record.asset_name,
+  assetValue: Number(record.asset_value) || 0,
+  bankName: record.bank_name,
+  sanctionAmount: Number(record.sanction_amount) || 0,
+  disbursedAmount: Number(record.disbursed_amount) || 0,
+  emiAmount: Number(record.emi_amount) || 0,
+  village: record.village,
+  mobile: record.mobile,
+  metadata: (record.metadata || {}) as BeneficiaryMetadata,
+  schemeName: record.scheme_name,
+  district: record.district,
+});
 
-const saveDraft = async (formValues: BeneficiaryFormPayload, metadata: BeneficiaryMetadata): Promise<BeneficiaryRecord> => {
+const saveDraft = async (
+  formValues: BeneficiaryFormPayload,
+  metadata: BeneficiaryMetadata,
+): Promise<BeneficiaryRecord> => {
   if (!supabase) throw new Error('Supabase not initialized');
 
   const normalizedMobile = normalizeMobile(formValues.mobile);
-  if (!normalizedMobile) throw new Error('Beneficiary mobile number is required before saving.');
+  if (!normalizedMobile) {
+    throw new Error('Beneficiary mobile number is required before saving.');
+  }
 
   const sanitizedValues: BeneficiaryFormPayload = {
     ...formValues,
@@ -78,9 +81,7 @@ const saveDraft = async (formValues: BeneficiaryFormPayload, metadata: Beneficia
 
   const dbPayload = toDbPayload(recordToSave);
 
-  const { error } = await supabase
-    .from(COLLECTION_NAME)
-    .upsert(dbPayload);
+  const { error } = await supabase.from(COLLECTION_NAME).upsert(dbPayload);
 
   if (error) throw error;
   return { ...recordToSave, id: normalizedMobile };
@@ -90,7 +91,9 @@ const getRecordByMobile = async (mobile: string): Promise<BeneficiaryRecord | nu
   if (!supabase) throw new Error('Supabase not initialized');
 
   const normalizedMobile = normalizeMobile(mobile);
-  if (!normalizedMobile) return null;
+  if (!normalizedMobile) {
+    return null;
+  }
 
   const { data, error } = await supabase
     .from(COLLECTION_NAME)
@@ -108,17 +111,19 @@ const getRecordByMobile = async (mobile: string): Promise<BeneficiaryRecord | nu
 
 const getProfileByMobile = async (mobile: string): Promise<BeneficiaryProfile | null> => {
   const record = await getRecordByMobile(mobile);
-  if (!record) return null;
+  if (!record) {
+    return null;
+  }
 
   return {
     id: record.metadata?.beneficiaryUid ?? record.id,
     name: record.fullName,
     mobile: record.mobile,
     role: 'beneficiary',
-    village: record.village,
-    district: record.district || '',
-    bank: record.bankName,
-    scheme: record.schemeName || '',
+    village: record.village ?? '',
+    district: record.district ?? '',
+    bank: record.bankName ?? '',
+    scheme: record.schemeName ?? '',
   };
 };
 
@@ -147,8 +152,8 @@ const updateStatus = async (mobile: string, status: string, reason?: string): Pr
     updatedAt: new Date().toISOString(),
     timeline: [
       ...(record.metadata.timeline || []),
-      { status, reason, timestamp: new Date().toISOString() }
-    ]
+      { status, reason, timestamp: new Date().toISOString() },
+    ],
   };
 
   const { error } = await supabase
@@ -169,8 +174,8 @@ const addNote = async (mobile: string, note: string, author: string): Promise<vo
     ...record.metadata,
     notes: [
       ...(record.metadata.notes || []),
-      { text: note, author, timestamp: new Date().toISOString() }
-    ]
+      { text: note, author, timestamp: new Date().toISOString() },
+    ],
   };
 
   const { error } = await supabase
@@ -183,7 +188,7 @@ const addNote = async (mobile: string, note: string, author: string): Promise<vo
 
 const subscribeToRecords = (
   onData: (records: BeneficiaryRecord[]) => void,
-  onError?: (error: Error) => void
+  onError?: (error: Error) => void,
 ) => {
   const client = supabase;
   if (!client) {
@@ -199,12 +204,16 @@ const subscribeToRecords = (
     .channel('public:beneficiaries')
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: COLLECTION_NAME },
+      {
+        event: '*',
+        schema: 'public',
+        table: COLLECTION_NAME,
+      },
       () => {
         listRecords()
           .then(onData)
-          .catch((err) => onError?.(err instanceof Error ? err : new Error(String(err)))); 
-      }
+          .catch((err) => onError?.(err instanceof Error ? err : new Error(String(err))));
+      },
     )
     .subscribe();
 
@@ -216,7 +225,7 @@ const subscribeToRecords = (
 const subscribeToRecord = (
   recordId: string,
   onData: (record: BeneficiaryRecord | null) => void,
-  onError?: (error: Error) => void
+  onError?: (error: Error) => void,
 ) => {
   const client = supabase;
   if (!recordId || !client) {
@@ -244,7 +253,7 @@ const subscribeToRecord = (
         } else {
           onData(fromDbRecord(payload.new));
         }
-      }
+      },
     )
     .subscribe();
 

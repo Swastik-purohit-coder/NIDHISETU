@@ -185,7 +185,8 @@ const subscribeToRecords = (
   onData: (records: BeneficiaryRecord[]) => void,
   onError?: (error: Error) => void
 ) => {
-  if (!supabase) {
+  const client = supabase;
+  if (!client) {
     onData([]);
     return () => undefined;
   }
@@ -194,7 +195,7 @@ const subscribeToRecords = (
     .then(onData)
     .catch((err) => onError?.(err instanceof Error ? err : new Error(String(err))));
 
-  const channel = supabase
+  const channel = client
     .channel('public:beneficiaries')
     .on(
       'postgres_changes',
@@ -208,7 +209,7 @@ const subscribeToRecords = (
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    client.removeChannel(channel);
   };
 };
 
@@ -217,7 +218,8 @@ const subscribeToRecord = (
   onData: (record: BeneficiaryRecord | null) => void,
   onError?: (error: Error) => void
 ) => {
-  if (!recordId || !supabase) {
+  const client = supabase;
+  if (!recordId || !client) {
     onData(null);
     return () => undefined;
   }
@@ -226,7 +228,7 @@ const subscribeToRecord = (
     .then(onData)
     .catch((err) => onError?.(err instanceof Error ? err : new Error(String(err))));
 
-  const channel = supabase
+  const channel = client
     .channel(`public:beneficiaries:${recordId}`)
     .on(
       'postgres_changes',
@@ -247,7 +249,7 @@ const subscribeToRecord = (
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    client.removeChannel(channel);
   };
 };
 

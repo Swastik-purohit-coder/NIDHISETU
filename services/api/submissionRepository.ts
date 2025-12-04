@@ -20,7 +20,10 @@ const materializeSubmission = (data: any): SubmissionEvidence => {
     capturedAt: data.capturedAt,
     submittedAt: data.submittedAt,
     location: ensureLocation(data.location),
+    deviceDetails: data.deviceDetails,
+    aiAnalysis: data.aiAnalysis,
     remarks: data.remarks,
+    rejectionReason: data.rejectionReason,
     status: data.status ?? 'pending',
     isDraft: data.isDraft,
     offlineId: data.offlineId,
@@ -89,6 +92,8 @@ const createSubmission = async (beneficiaryId: string, payload: NewSubmissionPay
     capturedAt: payload.capturedAt ?? new Date().toISOString(),
     submittedAt: payload.submittedAt ?? new Date().toISOString(),
     location: ensureLocation(payload.location),
+    deviceDetails: payload.deviceDetails ?? null,
+    aiAnalysis: payload.aiAnalysis ?? null,
     remarks: payload.remarks ?? null,
     thumbnailUrl: payload.thumbnailUrl ?? null,
     mediaUrl: payload.mediaUrl ?? null,
@@ -122,9 +127,38 @@ const createSubmissions = async (
   return created;
 };
 
+const updateStatus = async (id: string, status: string, rejectionReason?: string): Promise<void> => {
+  if (!supabase) throw new Error('Supabase not initialized');
+
+  const updates: any = { status };
+  if (rejectionReason) {
+    updates.rejectionReason = rejectionReason;
+  }
+
+  const { error } = await supabase
+    .from(COLLECTION_NAME)
+    .update(updates)
+    .eq('id', id);
+
+  if (error) throw error;
+};
+
+const updateAIAnalysis = async (id: string, aiAnalysis: any): Promise<void> => {
+  if (!supabase) throw new Error('Supabase not initialized');
+
+  const { error } = await supabase
+    .from(COLLECTION_NAME)
+    .update({ aiAnalysis })
+    .eq('id', id);
+
+  if (error) throw error;
+};
+
 export const submissionRepository = {
   listByBeneficiary,
   subscribeToBeneficiarySubmissions,
   createSubmission,
   createSubmissions,
+  updateStatus,
+  updateAIAnalysis,
 };

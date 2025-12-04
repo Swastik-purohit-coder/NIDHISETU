@@ -6,9 +6,11 @@ export type AuthStackParamList = {
 };
 
 export type BeneficiaryDrawerParamList = {
+  BeneficiaryRoot: undefined;
   BeneficiaryDashboard: undefined;
   UploadEvidence: { requirementId?: string; requirementName?: string } | undefined;
   PreviousSubmissions: undefined;
+  SubmissionDetail: { submission: any };
   BeneficiaryProfile: undefined;
   EditProfile: undefined;
   SyncStatus: undefined;
@@ -23,11 +25,13 @@ export type BeneficiaryDrawerParamList = {
 };
 
 export type OfficerStackParamList = {
+  OfficerRoot: undefined;
   OfficerDashboard: undefined;
   Beneficiaries: { filter?: string } | undefined;
   BeneficiaryForm: undefined;
   VerificationTasks: undefined;
   VerificationDetail: { beneficiaryId: string } | undefined;
+  OfficerSubmissionDetail: { submission: any; beneficiaryId: string };
   Reports: undefined;
   Notifications: undefined;
   Profile: undefined;

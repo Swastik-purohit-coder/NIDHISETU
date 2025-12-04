@@ -32,10 +32,12 @@ import { NotificationsScreen } from '@/screens/beneficiary/notifications-screen'
 import { ContactOfficerScreen } from '@/screens/beneficiary/contact-officer-screen';
 import { SyncStatusScreen } from '@/screens/beneficiary/sync-status-screen';
 import { UploadEvidenceScreen } from '@/screens/beneficiary/upload-evidence-screen';
+import { SubmissionDetailScreen } from '@/screens/beneficiary/submission-detail-screen';
 import { BeneficiaryFormScreen } from '@/screens/officer/beneficiary-form-screen';
 import { BeneficiaryListScreen } from '@/screens/officer/beneficiary-list-screen';
 import { OfficerDashboardScreen } from '@/screens/officer/dashboard-screen';
 import { VerificationDetailScreen } from '@/screens/officer/verification-detail-screen';
+import { OfficerSubmissionDetailScreen } from '@/screens/officer/officer-submission-detail-screen';
 import { VerificationTasksScreen } from '@/screens/officer/verification-tasks-screen';
 import { ReviewerDashboardScreen } from '@/screens/reviewer/dashboard-screen';
 import { ReviewDetailScreen } from '@/screens/reviewer/review-detail-screen';
@@ -52,7 +54,9 @@ import type {
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const BeneficiaryDrawer = createDrawerNavigator<BeneficiaryDrawerParamList>();
+const BeneficiaryStack = createNativeStackNavigator<BeneficiaryDrawerParamList>();
 const OfficerDrawer = createDrawerNavigator<OfficerStackParamList>();
+const OfficerStack = createNativeStackNavigator<OfficerStackParamList>();
 const ReviewerStack = createNativeStackNavigator<ReviewerStackParamList>();
 const Tab = createBottomTabNavigator();
 
@@ -143,7 +147,7 @@ const beneficiaryIconMap = {
   LoanAssistant: 'robot-happy-outline',
 } as const;
 
-const BeneficiaryNavigator = () => {
+const BeneficiaryDrawerNavigator = () => {
   const theme = useAppTheme();
   const profile = useAuthStore((state) => state.profile);
   const logout = useAuthStore((state) => state.actions.logout);
@@ -184,15 +188,6 @@ const BeneficiaryNavigator = () => {
         options={{ title: 'Profile', drawerIcon: ({color}) => <AppIcon name="account" size={24} color={color} /> }}
       />
       <BeneficiaryDrawer.Screen
-        name="EditProfile"
-        component={EditProfileScreen}
-        options={{
-          title: 'Edit Profile',
-          drawerItemStyle: { display: 'none' },
-          headerShown: false,
-        }}
-      />
-      <BeneficiaryDrawer.Screen
         name="PreviousSubmissions"
         component={PreviousSubmissionsScreen}
         options={{ title: 'My Submissions', drawerIcon: ({color}) => <AppIcon name="history" size={24} color={color} /> }}
@@ -212,61 +207,23 @@ const BeneficiaryNavigator = () => {
         component={LoanDetailsScreen}
         options={{ title: 'Settings', drawerIcon: ({color}) => <AppIcon name="cog" size={24} color={color} /> }}
       />
-      <BeneficiaryDrawer.Screen
-        name="LoanEvidenceCamera"
-        component={LoanEvidenceCameraScreen}
-        options={{
-          title: 'Capture Evidence',
-          drawerItemStyle: { display: 'none' },
-          headerShown: false,
-        }}
-      />
-      <BeneficiaryDrawer.Screen
-        name="EmiCalculator"
-        component={EmiCalculatorScreen}
-        options={{
-          title: 'EMI Calculator',
-          drawerItemStyle: { display: 'none' },
-          headerShown: false,
-        }}
-      />
-      <BeneficiaryDrawer.Screen
-        name="SubsidyCalculator"
-        component={SubsidyCalculatorScreen}
-        options={{
-          title: 'Subsidy Calculator',
-          drawerItemStyle: { display: 'none' },
-          headerShown: false,
-        }}
-      />
-      <BeneficiaryDrawer.Screen
-        name="EligibilityPrediction"
-        component={EligibilityPredictionScreen}
-        options={{
-          title: 'Eligibility Prediction',
-          drawerItemStyle: { display: 'none' },
-          headerShown: false,
-        }}
-      />
-      <BeneficiaryDrawer.Screen
-        name="Notifications"
-        component={NotificationsScreen}
-        options={{
-          title: 'Notifications',
-          drawerItemStyle: { display: 'none' },
-          headerShown: false,
-        }}
-      />
-      <BeneficiaryDrawer.Screen
-        name="ContactOfficer"
-        component={ContactOfficerScreen}
-        options={{
-          title: 'Contact Officer',
-          drawerItemStyle: { display: 'none' },
-          headerShown: false,
-        }}
-      />
     </BeneficiaryDrawer.Navigator>
+  );
+};
+
+const BeneficiaryNavigator = () => {
+  return (
+    <BeneficiaryStack.Navigator screenOptions={{ headerShown: false }}>
+      <BeneficiaryStack.Screen name="BeneficiaryRoot" component={BeneficiaryDrawerNavigator} />
+      <BeneficiaryStack.Screen name="SubmissionDetail" component={SubmissionDetailScreen} />
+      <BeneficiaryStack.Screen name="LoanEvidenceCamera" component={LoanEvidenceCameraScreen} />
+      <BeneficiaryStack.Screen name="EditProfile" component={EditProfileScreen} />
+      <BeneficiaryStack.Screen name="EmiCalculator" component={EmiCalculatorScreen} />
+      <BeneficiaryStack.Screen name="SubsidyCalculator" component={SubsidyCalculatorScreen} />
+      <BeneficiaryStack.Screen name="EligibilityPrediction" component={EligibilityPredictionScreen} />
+      <BeneficiaryStack.Screen name="Notifications" component={NotificationsScreen} />
+      <BeneficiaryStack.Screen name="ContactOfficer" component={ContactOfficerScreen} />
+    </BeneficiaryStack.Navigator>
   );
 };
 
@@ -282,7 +239,7 @@ const officerIconMap = {
   Support: 'lifebuoy',
 } as const;
 
-const OfficerNavigator = () => {
+const OfficerDrawerNavigator = () => {
   const theme = useAppTheme();
   const profile = useAuthStore((state) => state.profile);
   const logout = useAuthStore((state) => state.actions.logout);
@@ -322,15 +279,6 @@ const OfficerNavigator = () => {
         options={{ title: 'Verification Tasks' }}
       />
       <OfficerDrawer.Screen
-        name="VerificationDetail"
-        component={VerificationDetailScreen}
-        options={{
-          title: 'Verification Detail',
-          drawerItemStyle: { display: 'none' },
-          headerShown: false,
-        }}
-      />
-      <OfficerDrawer.Screen
         name="Reports"
         component={require('@/screens/officer/reports-screen').ReportsScreen}
         options={{ title: 'Reports' }}
@@ -356,6 +304,16 @@ const OfficerNavigator = () => {
         options={{ title: 'Support' }}
       />
     </OfficerDrawer.Navigator>
+  );
+};
+
+const OfficerNavigator = () => {
+  return (
+    <OfficerStack.Navigator screenOptions={{ headerShown: false }}>
+      <OfficerStack.Screen name="OfficerRoot" component={OfficerDrawerNavigator} />
+      <OfficerStack.Screen name="VerificationDetail" component={VerificationDetailScreen} />
+      <OfficerStack.Screen name="OfficerSubmissionDetail" component={OfficerSubmissionDetailScreen} />
+    </OfficerStack.Navigator>
   );
 };
 

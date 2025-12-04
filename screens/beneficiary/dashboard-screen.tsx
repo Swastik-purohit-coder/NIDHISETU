@@ -329,7 +329,10 @@ export const BeneficiaryDashboardScreen = () => {
                                         <AppText style={styles.modalDescription}>{selectedUpdate.description}</AppText>
                                         <AppButton
                                             label="Get Similar Updates"
-                                            onPress={() => fetchGovernmentUpdates(selectedUpdate.title)}
+                                            onPress={() => {
+                                                fetchGovernmentUpdates(selectedUpdate.title);
+                                                closeModal();
+                                            }}
                                             style={styles.modalButton}
                                             labelStyle={styles.modalButtonLabel}
                                             icon="refresh"

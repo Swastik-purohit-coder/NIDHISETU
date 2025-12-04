@@ -4,13 +4,17 @@ import * as FileSystem from 'expo-file-system/legacy';
 
 import * as Location from 'expo-location';
 import * as MediaLibrary from 'expo-media-library';
+import * as Device from 'expo-device';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+
+import Constants from 'expo-constants';
 
 import {
   Alert,
   Image,
   InteractionManager,
+  Platform,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -237,6 +241,33 @@ export const LoanEvidenceCameraScreen = ({ route, navigation }: Props) => {
 
       const remoteUrl = await uploadToStorage(finalUri);
 
+      let aiAnalysis = undefined;
+      try {
+        // Use the host URI from Expo config to connect to the backend on the same machine
+        const host = Constants.expoConfig?.hostUri?.split(':')[0] ?? 'localhost';
+        const API_URL = `http://${host}:3000`;
+        
+        console.log('Calling AI Analysis at:', API_URL);
+        
+        const response = await fetch(`${API_URL}/api/analyze-evidence`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl: remoteUrl }),
+        });
+        
+        if (response.ok) {
+          aiAnalysis = await response.json();
+          console.log('AI Analysis success:', aiAnalysis);
+        } else {
+          const errorText = await response.text();
+          console.warn('AI Analysis failed with status:', response.status, errorText);
+          Alert.alert('AI Analysis Failed', `Server returned ${response.status}: ${errorText}`);
+        }
+      } catch (e) {
+        console.warn('AI Analysis failed', e);
+        Alert.alert('AI Analysis Error', `Could not connect to AI server: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
       await submitEvidence({
         assetName: requirementName ?? 'Loan Evidence',
         mediaType: 'photo',
@@ -246,6 +277,13 @@ export const LoanEvidenceCameraScreen = ({ route, navigation }: Props) => {
           latitude: loc.coords.latitude,
           longitude: loc.coords.longitude,
         },
+        deviceDetails: {
+          brand: Device.brand,
+          model: Device.modelName,
+          osName: Device.osName,
+          osVersion: Device.osVersion,
+        },
+        aiAnalysis,
         remarks: requirementId ? `Requirement: ${requirementId}` : undefined,
         mediaUrl: remoteUrl,
         thumbnailUrl: remoteUrl,

@@ -9,6 +9,23 @@ export interface LocationCoordinate {
   longitude: number;
 }
 
+export interface DeviceDetails {
+  brand?: string | null;
+  model?: string | null;
+  osName?: string | null;
+  osVersion?: string | null;
+}
+
+export interface AIAnalysis {
+  object?: string;
+  secondary_objects?: string;
+  image_quality_check?: string;
+  document_check?: string;
+  geo_timestamp_check?: string;
+  compliance_status?: string;
+  remarks?: string;
+}
+
 export interface BeneficiaryLoan {
   id: string;
   loanId: string;
@@ -30,7 +47,10 @@ export interface SubmissionEvidence {
   capturedAt: string;
   submittedAt?: string;
   location: LocationCoordinate;
+  deviceDetails?: DeviceDetails;
+  aiAnalysis?: AIAnalysis;
   remarks?: string;
+  rejectionReason?: string;
   status: SubmissionStatus;
   isDraft?: boolean;
   offlineId?: string;

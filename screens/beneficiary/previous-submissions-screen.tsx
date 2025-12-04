@@ -24,6 +24,10 @@ export const PreviousSubmissionsScreen = () => {
     });
   };
 
+  const handleView = (submission: SubmissionEvidence) => {
+    navigation.navigate('SubmissionDetail', { submission });
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -41,6 +45,7 @@ export const PreviousSubmissionsScreen = () => {
           void refresh();
         }}
         onPressRetry={handleRetry}
+        onPressView={handleView}
         contentContainerStyle={styles.listContent}
       />
     </SafeAreaView>

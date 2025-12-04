@@ -108,7 +108,10 @@ export const VerificationDetailScreen = () => {
   };
 
   const EvidenceCard = ({ item }: { item: SubmissionEvidence }) => (
-    <View style={styles.evidenceCard}>
+    <TouchableOpacity 
+      style={styles.evidenceCard}
+      onPress={() => navigation.navigate('OfficerSubmissionDetail', { submission: item, beneficiaryId: id })}
+    >
       <View style={styles.evidenceHeader}>
         <View style={styles.evidenceInfo}>
           <AppText style={styles.evidenceTitle}>{item.assetName}</AppText>
@@ -130,7 +133,7 @@ export const VerificationDetailScreen = () => {
       {item.remarks && (
         <AppText style={styles.remarksText}>"{item.remarks}"</AppText>
       )}
-    </View>
+    </TouchableOpacity>
   );
 
   if (loading) {

@@ -26,6 +26,15 @@ const staticProfiles: Record<string, UserProfile> = {
     designation: 'Nodal Officer',
     region: 'Odisha Division',
   },
+  '9777569415': {
+    id: 'officer-3',
+    name: 'Field Officer',
+    mobile: '9777569415',
+    role: 'officer',
+    department: 'MSME Directorate',
+    designation: 'Field Officer',
+    region: 'Chhattisgarh Circle',
+  },
   '9009001234': {
     id: 'reviewer-1',
     name: 'Lead Reviewer',

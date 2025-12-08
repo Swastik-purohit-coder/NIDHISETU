@@ -201,8 +201,6 @@ export const BeneficiaryDashboardScreen = () => {
 
             const position = await Location.getCurrentPositionAsync({
                 accuracy: Location.Accuracy.Balanced,
-                maximumAge: 5000,
-                timeout: 5000,
             });
 
             setUserLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });

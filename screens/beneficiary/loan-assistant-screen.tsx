@@ -55,7 +55,11 @@ const TypingIndicator = ({ theme }: { theme: AppTheme }) => {
           key={idx}
           style={[
             typingStyles.dot,
-            { backgroundColor: theme.colors.primary, opacity: pulse, transform: [{ translateY: idx % 2 ? -1 : 0 }] },
+            {
+              backgroundColor: theme.colors.primary,
+              opacity: pulse,
+              transform: [{ translateY: idx % 2 ? -1 : 0 }],
+            },
           ]}
         />
       ))}
@@ -72,6 +76,18 @@ const formatNow = () =>
 export const BeneficiaryLoanAssistantScreen = () => {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const gradients = useMemo(
+    () => ({
+      page: [theme.colors.background, theme.colors.surfaceVariant] as const,
+      header: [theme.colors.primary, theme.colors.primaryContainer] as const,
+      input: [theme.colors.surface, theme.colors.surfaceVariant] as const,
+      accentBg: theme.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.12)',
+      accentBorder: theme.mode === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.28)',
+      chipBg: theme.colors.surfaceVariant,
+      botBubble: `${theme.colors.surface}F2`,
+    }),
+    [theme]
+  );
   const { profile, loan } = useBeneficiaryData();
 
   const [input, setInput] = useState('');
@@ -129,7 +145,7 @@ export const BeneficiaryLoanAssistantScreen = () => {
       <View style={styles.heroCard}>
         <View style={[styles.heroAvatarShadow, { shadowColor: `${theme.colors.primary}33` }]}>
           <LinearGradient
-            colors={[theme.colors.primary, '#4b73ff']}
+            colors={[theme.colors.primary, theme.colors.primaryContainer]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.heroAvatar}
@@ -161,7 +177,7 @@ export const BeneficiaryLoanAssistantScreen = () => {
           {QUICK_PROMPTS.map((prompt) => (
             <TouchableOpacity
               key={prompt}
-              style={[styles.chip, { backgroundColor: '#fff' }]}
+              style={[styles.chip, { backgroundColor: gradients.chipBg, borderColor: theme.colors.border }]}
               onPress={() => handleSend(prompt)}
             >
               <AppText style={{ color: theme.colors.text }}>{prompt}</AppText>
@@ -180,7 +196,7 @@ export const BeneficiaryLoanAssistantScreen = () => {
         keyboardVerticalOffset={130}
       >
         <LinearGradient
-          colors={[`${theme.colors.primary}10`, '#f6f8ff']}
+          colors={gradients.page}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.pageBackground}
@@ -188,17 +204,22 @@ export const BeneficiaryLoanAssistantScreen = () => {
 
         <View style={styles.headerWrapper}>
           <LinearGradient
-            colors={[theme.colors.primary, '#4b73ff']}
+            colors={gradients.header}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.headerGradient}
           >
             <View>
               <AppText style={styles.headerTitle}>NIDHI MITRA</AppText>
-              <AppText style={[styles.headerSubtitle, { color: '#f8fbff' }]}>Ask anything about your loan journey</AppText>
+              <AppText style={[styles.headerSubtitle, { color: theme.colors.onPrimary }]}>Ask anything about your loan journey</AppText>
             </View>
-            <View style={[styles.headerIconButton, { backgroundColor: '#ffffff22', borderColor: '#ffffff55' }]}>
-              <AppIcon name="chat-processing-outline" size={22} color="#fff" />
+            <View
+              style={[
+                styles.headerIconButton,
+                { backgroundColor: gradients.accentBg, borderColor: gradients.accentBorder },
+              ]}
+            >
+              <AppIcon name="chat-processing-outline" size={22} color={theme.colors.onPrimary} />
             </View>
           </LinearGradient>
         </View>
@@ -224,7 +245,7 @@ export const BeneficiaryLoanAssistantScreen = () => {
                         msg.role === 'user' ? styles.userBubble : styles.botBubble,
                         msg.role === 'user'
                           ? { backgroundColor: theme.colors.primary }
-                          : { backgroundColor: `${theme.colors.surface}F2`, borderColor: `${theme.colors.border}80` },
+                          : { backgroundColor: gradients.botBubble, borderColor: `${theme.colors.border}80` },
                       ]}
                     >
                       {msg.role === 'assistant' ? (
@@ -239,7 +260,7 @@ export const BeneficiaryLoanAssistantScreen = () => {
                           {msg.content}
                         </AppText>
                       )}
-                      <AppText style={styles.timestamp}>{formatNow()}</AppText>
+                      <AppText style={[styles.timestamp, { color: theme.colors.subtext }]}>{formatNow()}</AppText>
                     </Animated.View>
                   ))}
                   {isSending && (
@@ -247,7 +268,7 @@ export const BeneficiaryLoanAssistantScreen = () => {
                       style={[
                         styles.messageBubble,
                         styles.botBubble,
-                        { backgroundColor: `${theme.colors.surface}F2`, borderColor: `${theme.colors.border}80` },
+                        { backgroundColor: gradients.botBubble, borderColor: `${theme.colors.border}80` },
                       ]}
                     >
                       <TypingIndicator theme={theme} />
@@ -260,12 +281,12 @@ export const BeneficiaryLoanAssistantScreen = () => {
 
           <View style={styles.inputWrapper}>
             <LinearGradient
-              colors={['#f9fbff', '#eef3ff']}
+              colors={gradients.input}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.inputBackdrop}
             />
-            <View style={[styles.inputContainer, { backgroundColor: theme.colors.surface }]}>
+            <View style={styles.inputContainer}>
               <TouchableOpacity style={[styles.avatarButton, { shadowColor: theme.colors.border }]}>
                 <View style={[styles.avatarInner, { backgroundColor: `${theme.colors.primary}15` }]}>
                   <AppIcon name="robot" size={18} color={theme.colors.primary} />
@@ -297,16 +318,21 @@ export const BeneficiaryLoanAssistantScreen = () => {
   );
 };
 
-const createStyles = (theme: AppTheme) =>
-  StyleSheet.create({
+const createStyles = (theme: AppTheme) => {
+  const isDark = theme.mode === 'dark';
+  const shadowStrong = isDark ? 'rgba(0,0,0,0.45)' : 'rgba(26,43,68,0.16)';
+  const shadowSoft = isDark ? 'rgba(0,0,0,0.35)' : 'rgba(26,43,68,0.12)';
+  const shadowLighter = isDark ? 'rgba(0,0,0,0.25)' : 'rgba(26,43,68,0.08)';
+
+  return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: '#f4f6fb',
+      backgroundColor: theme.colors.background,
     },
     pageBackground: {
       ...StyleSheet.absoluteFillObject,
       zIndex: -1,
-      opacity: 0.9,
+      opacity: isDark ? 0.7 : 0.9,
     },
     headerWrapper: {
       paddingHorizontal: 18,
@@ -320,22 +346,22 @@ const createStyles = (theme: AppTheme) =>
       alignItems: 'center',
       justifyContent: 'space-between',
       backgroundColor: 'transparent',
-      shadowColor: '#2c3e5011',
+      shadowColor: shadowLighter,
       shadowOffset: { width: 0, height: 12 },
-      shadowOpacity: 0.4,
+      shadowOpacity: isDark ? 0.35 : 0.4,
       shadowRadius: 24,
       elevation: 8,
     },
     headerTitle: {
       fontSize: 20,
       fontWeight: '700',
-      color: '#ffffff',
+      color: theme.colors.onPrimary,
       letterSpacing: 0.4,
     },
     headerSubtitle: {
       marginTop: 4,
       fontSize: 13,
-      color: '#e9efff',
+      color: theme.colors.onPrimary,
     },
     headerIconButton: {
       width: 40,
@@ -343,27 +369,27 @@ const createStyles = (theme: AppTheme) =>
       borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'rgba(255,255,255,0.15)',
+      backgroundColor: 'transparent',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.25)',
+      borderColor: 'transparent',
     },
     chatCard: {
       flex: 1,
       marginHorizontal: 18,
       marginBottom: 0,
-      backgroundColor: '#ffffff',
+      backgroundColor: theme.colors.surface,
       borderRadius: 28,
       overflow: 'hidden',
-      shadowColor: '#1a2b4415',
+      shadowColor: shadowSoft,
       shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.35,
+      shadowOpacity: isDark ? 0.4 : 0.35,
       shadowRadius: 24,
       elevation: 10,
       position: 'relative',
     },
     scrollView: {
       flex: 1,
-      backgroundColor: '#ffffff',
+      backgroundColor: theme.colors.surface,
     },
     scrollContent: {
       flexGrow: 1,
@@ -384,12 +410,12 @@ const createStyles = (theme: AppTheme) =>
       alignItems: 'center',
       padding: 18,
       borderRadius: 20,
-      backgroundColor: '#f7f9ff',
+      backgroundColor: theme.colors.surface,
       borderWidth: 1,
-      borderColor: '#e6ecff',
-      shadowColor: '#1a2b4410',
+      borderColor: theme.colors.border,
+      shadowColor: shadowLighter,
       shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.25,
+      shadowOpacity: isDark ? 0.35 : 0.25,
       shadowRadius: 14,
       elevation: 6,
       gap: 14,
@@ -400,9 +426,9 @@ const createStyles = (theme: AppTheme) =>
       borderRadius: 32,
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: '#1a2b4433',
+      shadowColor: shadowStrong,
       shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.35,
+      shadowOpacity: isDark ? 0.35 : 0.3,
       shadowRadius: 16,
       elevation: 8,
     },
@@ -420,11 +446,11 @@ const createStyles = (theme: AppTheme) =>
     heroTitle: {
       fontSize: 18,
       fontWeight: '700',
-      color: '#1e293b',
+      color: theme.colors.text,
     },
     heroSubtitle: {
       fontSize: 14,
-      color: '#6b7280',
+      color: theme.colors.subtext,
     },
     welcomeBubble: {
       flexDirection: 'row',
@@ -434,15 +460,15 @@ const createStyles = (theme: AppTheme) =>
       width: '100%',
       gap: 8,
       borderWidth: 1,
-      borderColor: '#e5e7eb',
-      backgroundColor: '#fff',
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
     },
     welcomeIcon: {
       marginRight: 8,
     },
     welcomeText: {
       fontSize: 16,
-      color: '#1f2937',
+      color: theme.colors.text,
       flex: 1,
       lineHeight: 24,
     },
@@ -458,7 +484,7 @@ const createStyles = (theme: AppTheme) =>
     },
     suggestionTitle: {
       fontSize: 14,
-      color: '#4b5563',
+      color: theme.colors.subtext,
     },
     chipsGrid: {
       flexDirection: 'row',
@@ -466,13 +492,13 @@ const createStyles = (theme: AppTheme) =>
       gap: 10,
     },
     chip: {
-      borderWidth: 0,
+      borderWidth: 1,
       paddingHorizontal: 12,
       paddingVertical: 8,
       borderRadius: 999,
-      shadowColor: '#1a2b4416',
+      shadowColor: shadowSoft,
       shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.2,
+      shadowOpacity: isDark ? 0.2 : 0.18,
       shadowRadius: 16,
       elevation: 6,
     },
@@ -493,7 +519,7 @@ const createStyles = (theme: AppTheme) =>
       bottom: 8,
       top: 8,
       borderRadius: 28,
-      opacity: 0.9,
+      opacity: isDark ? 0.7 : 0.9,
     },
     inputContainer: {
       flexDirection: 'row',
@@ -501,16 +527,16 @@ const createStyles = (theme: AppTheme) =>
       paddingHorizontal: 16,
       paddingVertical: 12,
       borderRadius: 28,
-      shadowColor: '#1a2b4416',
+      shadowColor: shadowSoft,
       shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.25,
+      shadowOpacity: isDark ? 0.25 : 0.25,
       shadowRadius: 16,
       elevation: 10,
       borderWidth: 1,
-      borderColor: '#e5e7eb',
+      borderColor: theme.colors.border,
       gap: 10,
       marginHorizontal: 16,
-      backgroundColor: '#ffffff',
+      backgroundColor: theme.colors.surface,
     },
     input: {
       flex: 1,
@@ -518,18 +544,23 @@ const createStyles = (theme: AppTheme) =>
       paddingVertical: 10,
       color: theme.colors.text,
     },
+    inputActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
     avatarButton: {
       width: 36,
       height: 36,
       borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#ffffff',
+      backgroundColor: theme.colors.surface,
       borderWidth: 1,
-      borderColor: '#e5e7eb',
-      shadowColor: '#1a2b4411',
+      borderColor: theme.colors.border,
+      shadowColor: shadowLighter,
       shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.2,
+      shadowOpacity: isDark ? 0.28 : 0.2,
       shadowRadius: 10,
       elevation: 6,
     },
@@ -546,7 +577,7 @@ const createStyles = (theme: AppTheme) =>
       borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#f1f5f9',
+      backgroundColor: theme.colors.surfaceVariant,
     },
     sendButton: {
       width: 44,
@@ -566,9 +597,9 @@ const createStyles = (theme: AppTheme) =>
       padding: 16,
       borderRadius: 18,
       maxWidth: '82%',
-      shadowColor: '#1a2b4412',
+      shadowColor: shadowSoft,
       shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.16,
+      shadowOpacity: isDark ? 0.2 : 0.16,
       shadowRadius: 12,
       elevation: 4,
     },
@@ -580,7 +611,7 @@ const createStyles = (theme: AppTheme) =>
       alignSelf: 'flex-start',
       borderBottomLeftRadius: 8,
       borderWidth: 1,
-      borderColor: '#e5e7eb',
+      borderColor: theme.colors.border,
     },
     messageText: {
       fontSize: 15,
@@ -589,7 +620,7 @@ const createStyles = (theme: AppTheme) =>
     timestamp: {
       marginTop: 8,
       fontSize: 11,
-      color: '#94a3b8',
+      color: theme.colors.subtext,
     },
     typingContainer: {
       flexDirection: 'row',
@@ -602,6 +633,7 @@ const createStyles = (theme: AppTheme) =>
       borderRadius: 4,
     },
   });
+};
 
 const markdownStyles = (theme: AppTheme) =>
   StyleSheet.create({
@@ -650,6 +682,7 @@ const markdownStyles = (theme: AppTheme) =>
   });
 
 export default BeneficiaryLoanAssistantScreen;
+
 const typingStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',

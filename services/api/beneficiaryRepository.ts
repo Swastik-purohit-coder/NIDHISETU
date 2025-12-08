@@ -1,9 +1,9 @@
 import { supabase } from '@/lib/supabaseClient';
 import type {
-  BeneficiaryFormPayload,
-  BeneficiaryMetadata,
-  BeneficiaryRecord,
-  OfficerContext,
+    BeneficiaryFormPayload,
+    BeneficiaryMetadata,
+    BeneficiaryRecord,
+    OfficerContext,
 } from '@/types/beneficiary';
 import type { BeneficiaryProfile } from '@/types/entities';
 
@@ -124,10 +124,6 @@ const getProfileByMobile = async (mobile: string): Promise<BeneficiaryProfile | 
     district: record.district ?? '',
     bank: record.bankName ?? '',
     scheme: record.schemeName ?? '',
-    village: record.village,
-    district: record.district || '',
-    bank: record.bankName,
-    scheme: record.schemeName || '',
     avatarUrl: record.metadata?.avatarUrl,
   };
 };

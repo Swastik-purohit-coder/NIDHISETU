@@ -173,11 +173,7 @@ export const ReportsScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <WaveHeader
-        title="Reports & Analytics"
-        subtitle="Performance metrics and summaries"
-        height={180}
-      />
+      <WaveHeader title="Reports & Analytics" />
 
       <ScrollView contentContainerStyle={styles.content}>
         <SummaryStrip />
@@ -220,7 +216,6 @@ export const ReportsScreen = () => {
     </View>
   );
 };
-
 const ActivityItem = ({ title, subtitle, time, icon, color }: { title: string; subtitle: string; time: string; icon: string; color: string }) => {
   const theme = useAppTheme();
   return (

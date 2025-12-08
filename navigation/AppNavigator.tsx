@@ -1,4 +1,5 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
 import {
   createDrawerNavigator,
   DrawerContentComponentProps,
@@ -19,6 +20,8 @@ import { useAppTheme } from '@/hooks/use-app-theme';
 import { MobileInputScreen } from '@/screens/auth/mobile-input-screen';
 import { OnboardingScreen } from '@/screens/auth/onboarding-screen';
 import { OtpVerificationScreen } from '@/screens/auth/otp-verification-screen';
+import { SetPinScreen } from '@/screens/auth/SetPinScreen';
+import { EnterPinScreen } from '@/screens/auth/EnterPinScreen';
 import { WelcomeScreen } from '@/screens/auth/welcome-screen';
 import { ContactOfficerScreen } from '@/screens/beneficiary/contact-officer-screen';
 import { BeneficiaryDashboardScreen } from '@/screens/beneficiary/dashboard-screen';
@@ -99,29 +102,15 @@ const AuthNavigator = () => (
     <AuthStack.Screen name="Welcome" component={WelcomeScreen} />
     <AuthStack.Screen name="MobileInput" component={MobileInputScreen} />
     <AuthStack.Screen name="OtpVerification" component={OtpVerificationScreen} />
+    <AuthStack.Screen name="SetPin" component={SetPinScreen} />
+    <AuthStack.Screen name="EnterPin" component={EnterPinScreen} />
     <AuthStack.Screen name="Onboarding" component={OnboardingScreen} />
   </AuthStack.Navigator>
 );
 
 const BeneficiaryTabNavigator = () => {
   const theme = useAppTheme();
-  const [isTabVisible, setIsTabVisible] = useState(true);
-  const tabSlide = useRef(new Animated.Value(0)).current;
-
-  const translateY = tabSlide.interpolate({ inputRange: [0, 1], outputRange: [0, 110] });
-  const rotateArrow = tabSlide.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
-
-  const toggleTabs = () => {
-    const next = !isTabVisible;
-    setIsTabVisible(next);
-    Animated.timing(tabSlide, {
-      toValue: next ? 0 : 1,
-      duration: 220,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const tabScreenOptions = useMemo(
+  const tabScreenOptions = useMemo<BottomTabNavigationOptions>(
     () => ({
       headerShown: false,
       tabBarStyle: [
@@ -160,44 +149,36 @@ const BeneficiaryTabNavigator = () => {
   );
 
   return (
-    <View style={{ flex: 1 }}>
-      <Tab.Navigator screenOptions={tabScreenOptions}>
-        <Tab.Screen
-          name="Home"
-          component={BeneficiaryDashboardScreen}
-          options={{
-            tabBarIcon: ({ color }) => <AppIcon name="home" size={32} color={color} />,
-          }}
-        />
-        <Tab.Screen
-          name="LoanAssistant"
-          component={BeneficiaryLoanAssistantScreen}
-          options={{
-            tabBarIcon: ({ color }) => <AppIcon name="robot" size={32} color={color} />,
-          }}
-        />
-        <Tab.Screen
-          name="UploadEvidence"
-          component={UploadEvidenceScreen}
-          options={{
-            tabBarIcon: ({ color }) => <AppIcon name="hand-coin" size={32} color={color} />,
-          }}
-        />
-        <Tab.Screen
-          name="Profile"
-          component={BeneficiaryProfileScreen}
-          options={{
-            tabBarIcon: ({ color }) => <AppIcon name="chart-pie" size={32} color={color} />,
-          }}
-        />
-      </Tab.Navigator>
-
-      <Animated.View style={[tabToggleStyles.button, { transform: [{ rotate: rotateArrow }] }] }>
-        <TouchableOpacity style={tabToggleStyles.touch} onPress={toggleTabs}>
-          <AppIcon name={isTabVisible ? 'chevron-down' : 'chevron-up'} size={22} color={theme.colors.text} />
-        </TouchableOpacity>
-      </Animated.View>
-    </View>
+    <Tab.Navigator screenOptions={tabScreenOptions}>
+      <Tab.Screen
+        name="Home"
+        component={BeneficiaryDashboardScreen}
+        options={{
+          tabBarIcon: ({ color }) => <AppIcon name="home" size={32} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="NIDHIMITRA"
+        component={BeneficiaryLoanAssistantScreen}
+        options={{
+          tabBarIcon: ({ color }) => <AppIcon name="robot" size={32} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="UploadEvidence"
+        component={UploadEvidenceScreen}
+        options={{
+          tabBarIcon: ({ color }) => <AppIcon name="hand-coin" size={32} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={BeneficiaryProfileScreen}
+        options={{
+          tabBarIcon: ({ color }) => <AppIcon name="chart-pie" size={32} color={color} />,
+        }}
+      />
+    </Tab.Navigator>
   );
 };
 

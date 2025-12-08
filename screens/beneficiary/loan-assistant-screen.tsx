@@ -451,17 +451,10 @@ export const BeneficiaryLoanAssistantScreen = () => {
                       <TypingIndicator theme={theme} />
                     </View>
                   )}
-                  <AppText style={styles.timestamp}>{formatNow()}</AppText>
                 </View>
-              ))
-            )}
-
-            {isSending && (
-              <View style={[styles.messageBubble, styles.botBubble]}>
-                <TypingIndicator theme={theme} />
-              </View>
-            )}
-          </ScrollView>
+              )}
+            </ScrollView>
+          </View>
 
           {/* INPUT AREA */}
           <View style={styles.inputWrapper}>
@@ -640,10 +633,9 @@ const createStyles = (theme: AppTheme) => {
       justifyContent: 'center',
     },
 
-    chip: {
-      padding: 10,
-      backgroundColor: "#eef2ff",
-      borderRadius: 14,
+    heroTextBlock: {
+      flex: 1,
+      gap: 6,
     },
     heroTitle: {
       fontSize: 18,
@@ -655,13 +647,21 @@ const createStyles = (theme: AppTheme) => {
       color: theme.colors.subtext,
     },
 
-    botBubble: {
-      alignSelf: "flex-start",
-      backgroundColor: "#f1f5f9",
-      borderColor: "#cbd5e1",
+    welcomeBubble: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 14,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: theme.colors.border,
       backgroundColor: theme.colors.surface,
+      shadowColor: shadowLighter,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: isDark ? 0.28 : 0.22,
+      shadowRadius: 12,
+      elevation: 6,
+      gap: 10,
     },
     welcomeIcon: {
       marginRight: 8,
@@ -704,12 +704,14 @@ const createStyles = (theme: AppTheme) => {
       shadowRadius: 16,
       elevation: 6,
     },
+    messagesWrapper: {
+      flex: 1,
+    },
     inputWrapper: {
       position: "absolute",
       bottom: 0,
       left: 0,
       right: 0,
-      bottom: 0,
       paddingHorizontal: 12,
       paddingBottom: 12,
       paddingTop: 8,
@@ -894,5 +896,3 @@ const typingStyles = StyleSheet.create({
   container: { flexDirection: "row", gap: 6, alignItems: "center" },
   dot: { width: 8, height: 8, borderRadius: 4 },
 });
-
-export default BeneficiaryLoanAssistantScreen;

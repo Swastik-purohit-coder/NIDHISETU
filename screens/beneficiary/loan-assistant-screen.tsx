@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Markdown from 'react-native-markdown-display';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -226,16 +227,18 @@ export const BeneficiaryLoanAssistantScreen = () => {
                           : { backgroundColor: `${theme.colors.surface}F2`, borderColor: `${theme.colors.border}80` },
                       ]}
                     >
-                      <AppText
-                        style={[
-                          styles.messageText,
-                          msg.role === 'user'
-                            ? { color: theme.colors.onPrimary, fontWeight: '600' }
-                            : { color: theme.colors.text },
-                        ]}
-                      >
-                        {msg.content}
-                      </AppText>
+                      {msg.role === 'assistant' ? (
+                        <Markdown style={markdownStyles(theme)}>{msg.content}</Markdown>
+                      ) : (
+                        <AppText
+                          style={[
+                            styles.messageText,
+                            { color: theme.colors.onPrimary, fontWeight: '600' },
+                          ]}
+                        >
+                          {msg.content}
+                        </AppText>
+                      )}
                       <AppText style={styles.timestamp}>{formatNow()}</AppText>
                     </Animated.View>
                   ))}
@@ -599,6 +602,51 @@ const createStyles = (theme: AppTheme) =>
       borderRadius: 4,
     },
   });
+
+const markdownStyles = (theme: AppTheme) => ({
+  body: {
+    color: theme.colors.text,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  paragraph: {
+    marginTop: 2,
+    marginBottom: 6,
+  },
+  bullet_list: {
+    marginVertical: 4,
+  },
+  ordered_list: {
+    marginVertical: 4,
+  },
+  list_item: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+  bullet_list_icon: {
+    color: theme.colors.text,
+  },
+  ordered_list_icon: {
+    color: theme.colors.text,
+  },
+  code_inline: {
+    backgroundColor: `${theme.colors.surface}DD`,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: `${theme.colors.border}AA`,
+    fontFamily: 'monospace',
+  },
+  code_block: {
+    backgroundColor: `${theme.colors.surface}DD`,
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: `${theme.colors.border}AA`,
+    fontFamily: 'monospace',
+  },
+});
 
 export default BeneficiaryLoanAssistantScreen;
 const typingStyles = StyleSheet.create({

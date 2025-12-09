@@ -16,32 +16,30 @@ import {
     type ViewStyle,
 } from 'react-native';
 import * as Location from 'expo-location';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useT } from 'lingo.dev/react';
 
-import { AppIcon } from '@/components/atoms/app-icon';
-import type { IconName } from '@/components/atoms/app-icon';
-import { AppText } from '@/components/atoms/app-text';
 import { AppButton } from '@/components/atoms/app-button';
+import { AppIcon, type IconName } from '@/components/atoms/app-icon';
+import { AppText } from '@/components/atoms/app-text';
 import { InfoCard } from '@/components/molecules/info-card';
 import { LanguageSwitcher } from '@/components/molecules/language-switcher';
-import { useAuthStore } from '@/state/authStore';
-import { governmentUpdatesClient, type GovernmentUpdate } from '@/services/ai/governmentUpdates';
-import type { BeneficiaryDrawerParamList } from '@/navigation/types';
-import { useTheme } from '@/hooks/use-theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
+import { useTheme } from '@/hooks/use-theme';
+import type { BeneficiaryDrawerParamList } from '@/navigation/types';
+import { governmentUpdatesClient, type GovernmentUpdate } from '@/services/ai/governmentUpdates';
+import { useAuthStore } from '@/state/authStore';
 import type { AppTheme } from '@/constants/theme';
-import MapView, { Marker, PROVIDER_GOOGLE } from '@/components/react-native-maps-shim';
 
 type BeneficiaryNavigation = DrawerNavigationProp<BeneficiaryDrawerParamList>;
 type CalculatorRoute = 'EmiCalculator' | 'SubsidyCalculator' | 'EligibilityPrediction';
 
-type MenuItemKey = 'trackLoan' | 'evidenceTasks' | 'geoCamera' | 'notifications' | 'contactOfficer' | 'myProfile';
+type MenuItemKey = 'trackLoan' | 'uploadEvidence' | 'geoCamera' | 'notifications' | 'contactOfficer' | 'myProfile';
 
 const menuItems: Array<{ key: MenuItemKey; title: string; icon: IconName; color: string; background: string }> = [
     { key: 'trackLoan', title: 'Track Loan', icon: 'clipboard-text-clock-outline', color: '#1D4ED8', background: '#E8F2FF' },
-
-    { key: 'evidenceTasks', title: 'Evidence Tasks', icon: 'clipboard-text-outline', color: '#0EA5E9', background: '#E0F2FE' },
-    { key: 'geoCamera', title: 'Live Map', icon: 'map-outline', color: '#0F766E', background: '#E6FFFA' },
+    { key: 'uploadEvidence', title: 'Upload Evidence', icon: 'cloud-upload-outline', color: '#7C3AED', background: '#F3E8FF' },
+    { key: 'geoCamera', title: 'Geo-Camera', icon: 'camera-marker-outline', color: '#0F766E', background: '#E6FFFA' },
     { key: 'notifications', title: 'Notifications', icon: 'bell-outline', color: '#D97706', background: '#FFF8E1' },
     { key: 'contactOfficer', title: 'Contact Officer', icon: 'card-account-phone-outline', color: '#059669', background: '#E8F9EE' },
     { key: 'myProfile', title: 'My Profile', icon: 'account-circle-outline', color: '#BE185D', background: '#FFE8F2' },
@@ -66,26 +64,26 @@ const calculatorItems: Array<{
     {
         title: 'EMI calculator',
         desc: 'Plan your repayment.',
-        image: 'https://drive.google.com/uc?export=view&id=1z7GKuLN83akB8G071RbH6ZRRkvgLa5_C',
-        imageResizeMode: 'cover',
-        imageContainerStyle: { backgroundColor: '#F4F7FB' },
+        image: 'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=800&q=80',
         route: 'EmiCalculator',
+        imageResizeMode: 'cover',
+        imageAspectRatio: 1.8,
     },
     {
         title: 'Subsidy calculator',
         desc: 'Check your benefits.',
-        image: 'https://drive.google.com/uc?export=view&id=1EzIR1xto-f6j7o0CQBgLdUR9eyj7b8bI',
-        imageResizeMode: 'cover',
-        imageContainerStyle: { backgroundColor: '#F1F5FF' },
+        image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80',
         route: 'SubsidyCalculator',
+        imageResizeMode: 'cover',
+        imageAspectRatio: 1.8,
     },
     {
         title: 'Eligibility prediction',
         desc: 'Know your chances.',
-        image: 'https://drive.google.com/uc?export=view&id=1vEXL_Ieyu11zaeCoEz5lQXLFsCc6F3ql',
-        imageResizeMode: 'cover',
-        imageContainerStyle: { backgroundColor: '#F3F8F6' },
+        image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80',
         route: 'EligibilityPrediction',
+        imageResizeMode: 'cover',
+        imageAspectRatio: 1.8,
     },
 ];
 
@@ -100,30 +98,21 @@ const grievanceItems: Array<{
     {
         title: 'Submit issue',
         desc: 'Face any problem? Let us know.',
-        image: 'https://drive.google.com/uc?export=view&id=18seuSe2mnB-2gZM783okhqv3dnHxpnlv',
-        imageResizeMode: 'cover',
-        imageContainerStyle: { backgroundColor: '#FFF4EE' },
-        imageAspectRatio: 16 / 9,
+        image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
     },
     {
         title: 'Track complaint',
         desc: 'Check status of your tickets.',
-        image: 'https://drive.google.com/uc?export=view&id=1Iff_njWbCSt-tQWYbq0te7vUnOHKgUyg',
-        imageResizeMode: 'cover',
-        imageContainerStyle: { backgroundColor: '#EEF6FF' },
-         imageAspectRatio: 16 / 9,
+        image: 'https://images.unsplash.com/photo-1478479474071-8a3014d422c8?auto=format&fit=crop&w=800&q=80',
     },
     {
         title: 'Officer response',
         desc: 'View replies from officials.',
-        image: 'https://drive.google.com/uc?export=view&id=1Xe9fzI_opXmyPo2jyI9vqFOrptYu33dW',
-        imageResizeMode: 'cover',
-        imageContainerStyle: { backgroundColor: '#EFF7F9' },
-        imageAspectRatio: 16 / 9,
+        image: 'https://images.unsplash.com/photo-1515169067865-5387ec356754?auto=format&fit=crop&w=800&q=80',
     },
 ];
 
-export const BeneficiaryDashboardScreen = () => {
+const BeneficiaryDashboardScreen = () => {
     const navigation = useNavigation<BeneficiaryNavigation>();
     const { mode, toggleTheme } = useTheme();
     const theme = useAppTheme();
@@ -156,6 +145,23 @@ export const BeneficiaryDashboardScreen = () => {
     const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
     const locationWatcher = useRef<Location.LocationSubscription | null>(null);
 
+    const mapRegion = useMemo(
+        () =>
+            userLocation
+                ? {
+                      ...userLocation,
+                      latitudeDelta: 0.02,
+                      longitudeDelta: 0.02,
+                  }
+                : {
+                      latitude: 20.5937,
+                      longitude: 78.9629,
+                      latitudeDelta: 10,
+                      longitudeDelta: 10,
+                  },
+        [userLocation]
+    );
+
     const iconColor = theme.colors.icon;
     const iconBackground = theme.colors.surfaceVariant;
 
@@ -173,11 +179,11 @@ export const BeneficiaryDashboardScreen = () => {
             setLastUpdatedAt(new Date().toISOString());
         } catch (error) {
             console.error('Government updates fetch error:', error);
-            setUpdatesError('Unable to refresh live policy feed. Showing cached briefs.');
+            setUpdatesError(t('Unable to refresh live policy feed. Showing cached briefs.'));
         } finally {
             setUpdatesLoading(false);
         }
-    }, []);
+    }, [t]);
 
     const fetchCurrentLocation = useCallback(async () => {
         setLocationLoading(true);
@@ -200,7 +206,7 @@ export const BeneficiaryDashboardScreen = () => {
         } finally {
             setLocationLoading(false);
         }
-    }, []);
+    }, [t]);
 
     useEffect(() => {
         fetchGovernmentUpdates();
@@ -256,7 +262,7 @@ export const BeneficiaryDashboardScreen = () => {
                 locationWatcher.current = null;
             }
         };
-    }, [mapModalVisible, fetchCurrentLocation]);
+    }, [mapModalVisible, fetchCurrentLocation, t]);
 
     const lastUpdatedLabel = useMemo(() => {
         if (!lastUpdatedAt) return null;
@@ -267,24 +273,17 @@ export const BeneficiaryDashboardScreen = () => {
         })}`;
     }, [lastUpdatedAt]);
 
-    const mapRegion = useMemo(
-        () => ({
-            latitude: userLocation?.latitude ?? 28.6139,
-            longitude: userLocation?.longitude ?? 77.209,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-        }),
-        [userLocation]
+    const formatPublishedAt = useCallback(
+        (value?: string) => {
+            if (!value) return t('Live policy brief');
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) {
+                return value;
+            }
+            return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
+        },
+        [t]
     );
-
-    const formatPublishedAt = useCallback((value?: string) => {
-        if (!value) return t('Live policy brief');
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) {
-            return value;
-        }
-        return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
-    }, [t]);
 
     const openUpdateDetail = (item: GovernmentUpdate) => {
         setSelectedUpdate(item);
@@ -296,33 +295,30 @@ export const BeneficiaryDashboardScreen = () => {
         setIsModalVisible(false);
     };
 
-        const handleMenuPress = (key: MenuItemKey) => {
+    const handleMenuPress = (key: MenuItemKey) => {
         switch (key) {
             case 'trackLoan':
-                    navigation.navigate('PreviousSubmissions' as never);
-                    break;
-
-            case 'evidenceTasks':
-                navigation.navigate('EvidenceTasks' as never);
-                    break;
+                navigation.navigate('PreviousSubmissions' as never);
+                break;
+            case 'uploadEvidence':
+                navigation.navigate('UploadEvidence' as never);
+                break;
             case 'geoCamera':
-                    setUserLocation(null);
-                    setLocationError(null);
-                    setMapModalVisible(true);
-                    break;
+                setMapModalVisible(true);
+                break;
             case 'notifications':
-                    navigation.navigate('Notifications' as never);
-                    break;
+                navigation.navigate('Notifications' as never);
+                break;
             case 'contactOfficer':
-                    navigation.navigate('ContactOfficer' as never);
-                    break;
+                navigation.navigate('ContactOfficer' as never);
+                break;
             case 'myProfile':
-                    navigation.navigate('BeneficiaryProfile' as never);
-                    break;
-                default:
-                    console.warn('Unknown menu item:', key);
-            }
-        };
+                navigation.navigate('BeneficiaryProfile' as never);
+                break;
+            default:
+                console.warn('Unknown menu item:', key);
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -385,20 +381,20 @@ export const BeneficiaryDashboardScreen = () => {
                     <View style={styles.sectionHeader}>
                         <AppText style={styles.sectionTitle}>{t('Government Updates')}</AppText>
                         <TouchableOpacity onPress={() => fetchGovernmentUpdates()} disabled={updatesLoading} style={styles.refreshButton}>
-                                <AppIcon
-                                    name="refresh"
-                                    size={18}
-                                    color={updatesLoading ? theme.colors.subtext : theme.colors.primary}
-                                />
+                            <AppIcon
+                                name="refresh"
+                                size={18}
+                                color={updatesLoading ? theme.colors.subtext : theme.colors.primary}
+                            />
                             <AppText style={[styles.refreshText, updatesLoading && styles.refreshDisabled]}>
                                 {updatesLoading ? t('Refreshing...') : t('Refresh')}
                             </AppText>
                         </TouchableOpacity>
                     </View>
                     {lastUpdatedLabel && (
-                      <AppText style={styles.statusText}>
-                        {t('Updated')} {lastUpdatedLabel}
-                      </AppText>
+                        <AppText style={styles.statusText}>
+                            {t('Updated')} {lastUpdatedLabel}
+                        </AppText>
                     )}
                     {updatesError && <AppText style={styles.errorText}>{t(updatesError)}</AppText>}
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
@@ -706,51 +702,57 @@ const createStyles = (theme: AppTheme) =>
         verticalList: {
             gap: 0,
         },
-        modalOverlay: {
-            flex: 1,
-            backgroundColor: theme.colors.overlay,
-            justifyContent: 'center',
-            padding: 24,
-        },
         mapModalContent: {
             backgroundColor: theme.colors.surface,
-            borderRadius: 20,
+            borderRadius: 16,
             padding: 16,
-            gap: 12,
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: theme.colors.border,
+            gap: 12,
         },
         mapModalHeader: {
             flexDirection: 'row',
-            alignItems: 'center',
             justifyContent: 'space-between',
+            alignItems: 'center',
         },
         mapModalTitle: {
             fontSize: 16,
-            fontWeight: '600',
+            fontWeight: '700',
             color: theme.colors.text,
         },
         mapContainerModal: {
-            height: 420,
-            borderRadius: 16,
+            borderRadius: 12,
             overflow: 'hidden',
             backgroundColor: theme.colors.surfaceVariant,
         },
         map: {
-            flex: 1,
+            height: 260,
+            width: '100%',
         },
         mapStatusRow: {
-            marginTop: 12,
-            gap: 6,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingTop: 8,
         },
         statusChip: {
             flexDirection: 'row',
             alignItems: 'center',
             gap: 8,
+            backgroundColor: theme.colors.surfaceVariant,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 12,
         },
         statusChipText: {
+            color: theme.colors.text,
             fontSize: 12,
-            color: theme.colors.subtext,
+        },
+        modalOverlay: {
+            flex: 1,
+            backgroundColor: theme.colors.overlay,
+            justifyContent: 'center',
+            padding: 24,
         },
         modalContent: {
             backgroundColor: theme.colors.surface,
@@ -806,3 +808,6 @@ const createStyles = (theme: AppTheme) =>
             fontWeight: '600',
         },
     });
+
+export { BeneficiaryDashboardScreen };
+export default BeneficiaryDashboardScreen;

@@ -23,7 +23,6 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Location from 'expo-location';
 import * as Device from 'expo-device';
-import * as Network from 'expo-network';
 import { decode as base64Decode } from 'base-64';
 import { useT } from 'lingo.dev/react';
 import { AppText } from '@/components/atoms/app-text';
@@ -55,13 +54,12 @@ export type UploadEvidenceScreenProps = {
     params?: {
       requirementId?: string;
       requirementName?: string;
-      startWithLibrary?: boolean;
     };
   };
 };
 
 export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreenProps) => {
-  const { requirementId, requirementName, startWithLibrary } = route.params || {};
+  const { requirementId, requirementName } = route.params || {};
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const t = useT();
@@ -84,9 +82,7 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
   const [selectedRequirementId, setSelectedRequirementId] = useState<string | undefined>(requirementId);
 
   const { submitEvidence, isOnline } = useSubmissions();
-  const beneficiaryId = useAuthStore((s) => s.profile?.id);
-  const beneficiaryMobile = useAuthStore((s) => s.profile?.mobile ?? s.mobile);
-  const userId = beneficiaryId ?? beneficiaryMobile ?? 'anonymous';
+  const userId = useAuthStore((s) => s.profile?.id ?? 'anonymous');
 
   useEffect(() => {
     // Update timestamp every minute if no image selected
@@ -103,51 +99,34 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
   }, []);
 
   useEffect(() => {
-    if (startWithLibrary === true) {
-      handleFilePick();
-    } else if (startWithLibrary === false) {
-      handleCameraCapture();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startWithLibrary]);
-
-  useEffect(() => {
-    if (!beneficiaryId && !beneficiaryMobile) return;
-
-    let isMounted = true;
-    setRequirementsLoading(true);
-    (async () => {
+    let isActive = true;
+    const loadRequirements = async () => {
+      if (!userId || userId === 'anonymous') return;
+      setRequirementsLoading(true);
       try {
-        const primaryKey = beneficiaryId || beneficiaryMobile || '';
-        const primary = primaryKey ? await evidenceRequirementApi.list(primaryKey) : [];
-        if (!isMounted) return;
-
-        let found = primary;
-        if (!primary.length && beneficiaryMobile && beneficiaryMobile !== primaryKey) {
-          const fallback = await evidenceRequirementApi.list(beneficiaryMobile);
-          if (!isMounted) return;
-          found = fallback;
+        const list = await evidenceRequirementApi.list(userId);
+        if (!isActive) return;
+        setRequirements(list);
+        const initialRequirementId = requirementId ?? list[0]?.id;
+        if (initialRequirementId) {
+          setSelectedRequirementId(initialRequirementId);
+          const selected = list.find((req) => req.id === initialRequirementId);
+          if (selected?.label) {
+            setAssetCategory(selected.label);
+          }
         }
-
-        setRequirements(found);
-        const initialReq = requirementId
-          ? found.find((req) => req.id === requirementId)
-          : found[0];
-        if (initialReq) {
-          setSelectedRequirementId(initialReq.id);
-          setAssetCategory(initialReq.label);
-        }
-      } catch (err) {
-        console.error(err);
+      } catch (error) {
+        console.error('Failed to load requirements', error);
       } finally {
-        if (isMounted) setRequirementsLoading(false);
+        if (isActive) setRequirementsLoading(false);
       }
-    })();
-
-    return () => {
-      isMounted = false;
     };
-  }, [beneficiaryId, beneficiaryMobile, requirementId]);
+
+    loadRequirements();
+    return () => {
+      isActive = false;
+    };
+  }, [userId, requirementId]);
 
   const checkLocationServices = async () => {
     const enabled = await Location.hasServicesEnabledAsync();
@@ -232,7 +211,6 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
       setTimestamp(new Date().toLocaleString());
     }
   };
-
   const uploadToStorage = async (uri: string) => {
     if (!supabase) throw new Error('Supabase not configured');
     
@@ -245,7 +223,7 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
       buffer[i] = binary.charCodeAt(i);
     }
 
-    const fileName = `submissions/${userId}/${Date.now()}.jpg`;
+    const fileName = `${userId}/${Date.now()}.jpg`;
     const { error } = await supabase.storage
       .from('UploadEvedence')
       .upload(fileName, buffer, {
@@ -273,13 +251,8 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
       return;
     }
 
-
-
-    const selectedRequirement = requirements.find((req) => req.id === selectedRequirementId);
-
     setLoading(true);
     try {
-      const requirementLabel = selectedRequirement?.label ?? assetCategory;
       let publicUrl = imageUri; // Default to local URI for offline
 
       if (isOnline) {
@@ -288,46 +261,25 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
         // In offline mode, we might want to copy the file to a permanent local location
         // For now, we use the cache URI, but in a real app, we'd move it to documentDirectory
         const fileName = `${Date.now()}.jpg`;
-        const folder = `${FileSystem.documentDirectory}submissions/`;
-        await FileSystem.makeDirectoryAsync(folder, { intermediates: true }).catch(() => undefined);
-        const newPath = `${folder}${fileName}`;
+        const newPath = `${FileSystem.documentDirectory}${fileName}`;
         await FileSystem.copyAsync({ from: imageUri, to: newPath });
         publicUrl = newPath;
         Alert.alert(t('Offline Mode'), t('Evidence saved locally. It will be uploaded when you are back online.'));
       }
 
       await submitEvidence({
-        assetName: requirementLabel,
+        assetName: assetCategory,
         mediaType: 'photo',
         capturedAt: new Date().toISOString(),
         submittedAt: new Date().toISOString(),
         remarks: `${caption} [Device: ${deviceInfo}]`,
         mediaUrl: publicUrl,
         thumbnailUrl: publicUrl,
-        requirementId: selectedRequirementId,
         location: {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         },
       });
-
-      if (isOnline && beneficiaryId) {
-        try {
-          await evidenceRequirementApi.recordSubmission({
-            requirementId: selectedRequirementId,
-            beneficiaryId,
-            mediaUrl: publicUrl,
-            thumbnailUrl: publicUrl,
-            assetName: requirementLabel,
-            location: {
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
-            },
-          });
-        } catch (recordError) {
-          console.error('Failed to record requirement submission', recordError);
-        }
-      }
 
       if (isOnline) {
         Alert.alert(t('Success'), t('Evidence uploaded successfully'), [
@@ -413,10 +365,10 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
                   {requirements.map((req) => (
                     <TouchableOpacity
                       key={req.id}
-                      style={[
-                        styles.requirementChip,
-                        selectedRequirementId === req.id && { backgroundColor: theme.colors.secondary },
-                      ]}
+                       style={[
+                         styles.requirementChip,
+                         selectedRequirementId === req.id && { backgroundColor: theme.colors.secondary },
+                       ]}
                       onPress={() => {
                         setSelectedRequirementId(req.id);
                         setAssetCategory(req.label);
@@ -636,6 +588,32 @@ const createStyles = (theme: AppTheme) =>
     form: {
       gap: 24,
     },
+    requirementsContainer: {
+      gap: 8,
+    },
+    requirementsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingVertical: 4,
+    },
+    requirementsLabel: {
+      fontSize: 14,
+      color: theme.colors.subtext,
+    },
+    requirementChip: {
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 16,
+      backgroundColor: theme.colors.surface,
+      marginRight: 8,
+    },
+    requirementChipText: {
+      color: theme.colors.text,
+      fontWeight: '600',
+    },
     inputGroup: {
       gap: 8,
     },
@@ -668,32 +646,6 @@ const createStyles = (theme: AppTheme) =>
     dropdownText: {
       fontSize: 16,
       color: theme.colors.text,
-    },
-    requirementsContainer: {
-      gap: 8,
-    },
-    requirementsRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    requirementsLabel: {
-      color: theme.colors.text,
-      fontSize: 14,
-    },
-    requirementChip: {
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      borderRadius: 20,
-      backgroundColor: '#E5E7EB',
-      marginRight: 8,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-    },
-    requirementChipText: {
-      color: theme.colors.text,
-      fontSize: 14,
-      fontWeight: '600',
     },
     uploadButton: {
       marginTop: 8,

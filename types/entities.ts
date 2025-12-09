@@ -40,6 +40,7 @@ export interface BeneficiaryLoan {
 
 export interface SubmissionEvidence {
   id: string;
+  requirementId?: string;
   assetName: string;
   mediaType: 'photo' | 'video';
   thumbnailUrl?: string;
@@ -54,7 +55,6 @@ export interface SubmissionEvidence {
   status: SubmissionStatus;
   isDraft?: boolean;
   offlineId?: string;
-  requirementId?: string;
 }
 
 export type NewSubmissionPayload = Omit<SubmissionEvidence, 'id' | 'status'> & {
@@ -82,6 +82,7 @@ export interface BaseProfile {
   name: string;
   mobile: string;
   role: UserRole;
+  email?: string;
   avatarUrl?: string;
 }
 

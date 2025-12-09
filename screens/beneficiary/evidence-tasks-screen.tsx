@@ -13,12 +13,17 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useT } from "lingo.dev/react";
 import { LanguageSwitcher } from "@/components/molecules/language-switcher";
+import { AppIcon } from "@/components/atoms/app-icon";
+import { AppText } from "@/components/atoms/app-text";
+import { AppButton } from "@/components/atoms/app-button";
+import { useAppTheme } from "@/hooks/use-app-theme";
 
 import { evidenceRequirementApi, type EvidenceRequirementRecord } from "@/services/api/evidenceRequirements";
 import { submissionRepository } from "@/services/api/submissionRepository";
 import type { SubmissionEvidence } from "@/types/entities";
 import { useAuthStore } from "@/state/authStore";
 import { useNavigation } from "@react-navigation/native";
+import type { AppTheme } from "@/constants/theme";
 
 const HEADER_COLOR = "#A7FFEB";
 const CARD_BORDER = "#E5E7EB";
@@ -26,7 +31,8 @@ const PURPLE = "#6C63FF";
 
 function EvidenceTasksScreen() {
   const navigation = useNavigation<any>();
-  const styles = useMemo(() => createStyles(), []);
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const beneficiaryId = useAuthStore((s) => s.profile?.id);
   const beneficiaryMobile = useAuthStore((s) => s.profile?.mobile ?? s.mobile);
   const t = useT();
@@ -42,10 +48,22 @@ function EvidenceTasksScreen() {
     const load = async () => {
       setLoading(true);
       try {
-        const primaryKey = beneficiaryId || beneficiaryMobile || "";
+        const primaryKey = beneficiaryId || beneficiaryMobile || '';
+
+        if (!primaryKey) {
+          setLoading(false);
+          return;
+        }
+
         const [primaryReq, primarySub] = await Promise.all([
-          primaryKey ? evidenceRequirementApi.list(primaryKey) : [],
-          primaryKey ? submissionRepository.listByBeneficiary(primaryKey) : [],
+          evidenceRequirementApi.list(primaryKey).catch(err => {
+            console.error('Failed to load requirements:', JSON.stringify(err, null, 2));
+            return [];
+          }),
+          submissionRepository.listByBeneficiary(primaryKey).catch(err => {
+            console.error('Failed to load submissions:', JSON.stringify(err, null, 2));
+            return [];
+          }),
         ]);
 
         if (!active) return;
@@ -54,16 +72,15 @@ function EvidenceTasksScreen() {
         let foundSub = primarySub;
 
         if (!primaryReq.length && beneficiaryMobile && beneficiaryMobile !== primaryKey) {
-          const fallbackReq = await evidenceRequirementApi.list(beneficiaryMobile);
+          const fallbackReq = await evidenceRequirementApi.list(beneficiaryMobile).catch(() => []);
           if (!active) return;
-          foundReq = fallbackReq;
+          if (fallbackReq.length) foundReq = fallbackReq;
         }
-
         setRequirements(foundReq);
         setSubmissions(foundSub);
       } catch (err) {
-        console.error("Load evidence tasks failed", err);
-        if (active) Alert.alert(t("Error"), t("Unable to load evidence tasks"));
+        console.error('Load evidence tasks failed', err);
+        if (active) Alert.alert(t('Error'), t('Unable to load evidence tasks'));
       } finally {
         if (active) setLoading(false);
       }
@@ -73,7 +90,7 @@ function EvidenceTasksScreen() {
     return () => {
       active = false;
     };
-  }, [beneficiaryId, beneficiaryMobile]);
+  }, [beneficiaryId, beneficiaryMobile, t]);
 
   const handleUploadPress = (req: EvidenceRequirementRecord) => {
     const allowCamera = req.permissions?.camera !== false;
@@ -176,7 +193,64 @@ function EvidenceTasksScreen() {
         ) : requirements.length === 0 ? (
           <Text style={styles.emptyText}>{t("No evidence tasks available.")}</Text>
         ) : (
-          requirements.map(renderCard)
+          requirements.map((req) => {
+            const submission = submissions.find(s => s.requirementId === req.id);
+            return (
+            <TouchableOpacity 
+              key={req.id} 
+              style={[styles.card, { borderColor: theme.colors.border }]}
+              disabled={req.status !== 'submitted' || !submission}
+              onPress={() => {
+                if (submission) {
+                  navigation.navigate('SubmissionDetail', { submission });
+                }
+              }}
+              activeOpacity={0.7}
+            > 
+              <View style={styles.cardHeader}>
+                <AppIcon name="clipboard-text-outline" size={20} color={theme.colors.secondary} />
+                <View style={{ flex: 1 }}>
+                  <AppText variant="titleSmall" color="text">{req.label}</AppText>
+                  {req.instructions ? (
+                    <AppText variant="labelSmall" color="muted" numberOfLines={2}>{req.instructions}</AppText>
+                  ) : null}
+                  <View style={styles.metaRow}>
+                    <AppText variant="labelSmall" color="muted">Camera: {req.permissions?.camera === false ? 'Disabled' : 'Allowed'}</AppText>
+                    <AppText variant="labelSmall" color="muted">Files: {req.permissions?.fileUpload === false ? 'Disabled' : 'Allowed'}</AppText>
+                  </View>
+                  <View style={styles.metaRow}>
+                    {req.response_type ? (
+                      <AppText variant="labelSmall" color="muted">Type: {req.response_type}</AppText>
+                    ) : null}
+                    {req.model ? (
+                      <AppText variant="labelSmall" color="muted">Model: {req.model}</AppText>
+                    ) : null}
+                    {req.image_quality ? (
+                      <AppText variant="labelSmall" color="muted">Quality: {req.image_quality}</AppText>
+                    ) : null}
+                  </View>
+                </View>
+              </View>
+              {submission || req.status === 'submitted' ? (
+                <AppButton
+                  label="Pending for Review"
+                  tone="secondary"
+                  icon="clock-check-outline"
+                  disabled
+                  style={styles.uploadButton}
+                />
+              ) : (
+                <AppButton
+                  label="Upload"
+                  tone="secondary"
+                  icon="cloud-upload-outline"
+                  onPress={() => handleUploadPress(req)}
+                  style={styles.uploadButton}
+                />
+              )}
+            </TouchableOpacity>
+            );
+          })
         )}
       </ScrollView>
     </View>
@@ -237,9 +311,9 @@ const TaskCard = ({ title, subtitle, bullets, onUpload, isPending, styles }: Tas
   );
 };
 
-const createStyles = () =>
+const createStyles = (theme: AppTheme) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#FFFFFF" },
+    container: { flex: 1, backgroundColor: theme.colors.background },
     header: {
       paddingTop: 50,
       paddingBottom: 25,
@@ -294,7 +368,7 @@ const createStyles = () =>
       fontSize: 14,
     },
     card: {
-      backgroundColor: "#FFFFFF",
+      backgroundColor: theme.colors.surface,
       padding: 20,
       borderRadius: 18,
       borderWidth: 1,
@@ -305,6 +379,11 @@ const createStyles = () =>
       shadowRadius: 4,
       elevation: 3,
       gap: 10,
+    },
+    cardHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
     },
     cardHeaderRow: {
       flexDirection: "row",
@@ -322,6 +401,13 @@ const createStyles = () =>
       color: "#666",
       marginTop: 2,
       fontSize: 14,
+    },
+    metaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap",
+      marginTop: 4,
     },
     bulletList: {
       marginTop: 10,

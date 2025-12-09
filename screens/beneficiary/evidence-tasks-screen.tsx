@@ -11,6 +11,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { useT } from "lingo.dev/react";
+import { LanguageSwitcher } from "@/components/molecules/language-switcher";
 
 import { evidenceRequirementApi, type EvidenceRequirementRecord } from "@/services/api/evidenceRequirements";
 import { submissionRepository } from "@/services/api/submissionRepository";
@@ -27,6 +29,7 @@ function EvidenceTasksScreen() {
   const styles = useMemo(() => createStyles(), []);
   const beneficiaryId = useAuthStore((s) => s.profile?.id);
   const beneficiaryMobile = useAuthStore((s) => s.profile?.mobile ?? s.mobile);
+  const t = useT();
 
   const [requirements, setRequirements] = useState<EvidenceRequirementRecord[]>([]);
   const [submissions, setSubmissions] = useState<SubmissionEvidence[]>([]);
@@ -60,7 +63,7 @@ function EvidenceTasksScreen() {
         setSubmissions(foundSub);
       } catch (err) {
         console.error("Load evidence tasks failed", err);
-        if (active) Alert.alert("Error", "Unable to load evidence tasks");
+        if (active) Alert.alert(t("Error"), t("Unable to load evidence tasks"));
       } finally {
         if (active) setLoading(false);
       }
@@ -77,7 +80,7 @@ function EvidenceTasksScreen() {
     const allowFiles = req.permissions?.fileUpload !== false;
 
     if (!allowCamera && !allowFiles) {
-      Alert.alert("Not Allowed", "Uploads are disabled for this requirement.");
+      Alert.alert(t("Not Allowed"), t("Uploads are disabled for this requirement."));
       return;
     }
 
@@ -95,10 +98,10 @@ function EvidenceTasksScreen() {
       });
 
     if (allowCamera && allowFiles) {
-      Alert.alert("Choose source", "Select how you want to upload", [
-        { text: "Camera", onPress: goCamera },
-        { text: "Files", onPress: goFiles },
-        { text: "Cancel", style: "cancel" },
+      Alert.alert(t("Choose source"), t("Select how you want to upload"), [
+        { text: t("Camera"), onPress: goCamera },
+        { text: t("Files"), onPress: goFiles },
+        { text: t("Cancel"), style: "cancel" },
       ]);
       return;
     }
@@ -116,18 +119,18 @@ function EvidenceTasksScreen() {
   const renderCard = (req: EvidenceRequirementRecord) => {
     const submission = submissions.find((s) => s.requirementId === req.id);
     const bullets = [
-      `Camera: ${req.permissions?.camera === false ? "Disabled" : "Allowed"}`,
-      `Files: ${req.permissions?.fileUpload === false ? "Disabled" : "Allowed"}`,
-      req.response_type ? `Type: ${req.response_type}` : null,
-      req.model ? `Model: ${req.model}` : null,
-      req.image_quality ? `Quality: ${req.image_quality}` : null,
+      `${t("Camera")}: ${req.permissions?.camera === false ? t("Disabled") : t("Allowed")}`,
+      `${t("Files")}: ${req.permissions?.fileUpload === false ? t("Disabled") : t("Allowed")}`,
+      req.response_type ? `${t("Type")}: ${req.response_type}` : null,
+      req.model ? `${t("Model")}: ${req.model}` : null,
+      req.image_quality ? `${t("Quality")}: ${req.image_quality}` : null,
     ].filter(Boolean) as string[];
 
     return (
       <TaskCard
         key={req.id}
-        title={req.label}
-        subtitle={req.instructions}
+        title={t(req.label)}
+        subtitle={req.instructions ? t(req.instructions) : undefined}
         bullets={bullets}
         onUpload={() => handleUploadPress(req)}
         isPending={Boolean(submission)}
@@ -153,25 +156,25 @@ function EvidenceTasksScreen() {
             >
               <Ionicons name="arrow-back" size={24} color="#000" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Evidence Tasks</Text>
+            <Text style={styles.headerTitle}>{t("Evidence Tasks")}</Text>
             <View style={{ width: 24 }} />
           </View>
         </SafeAreaView>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>Officer-assigned evidence</Text>
+        <Text style={styles.sectionTitle}>{t("Officer-assigned evidence")}</Text>
         <Text style={styles.sectionSubtitle}>
-          Select a task and upload as per the allowed sources.
+          {t("Select a task and upload as per the allowed sources.")}
         </Text>
 
         {loading ? (
           <View style={styles.loaderRow}>
             <ActivityIndicator size="small" color={PURPLE} />
-            <Text style={styles.loaderText}>Loading tasks...</Text>
+            <Text style={styles.loaderText}>{t("Loading tasks...")}</Text>
           </View>
         ) : requirements.length === 0 ? (
-          <Text style={styles.emptyText}>No evidence tasks available.</Text>
+          <Text style={styles.emptyText}>{t("No evidence tasks available.")}</Text>
         ) : (
           requirements.map(renderCard)
         )}
@@ -189,7 +192,10 @@ type TaskCardProps = {
   styles: ReturnType<typeof createStyles>;
 };
 
-const TaskCard = ({ title, subtitle, bullets, onUpload, isPending, styles }: TaskCardProps) => (
+const TaskCard = ({ title, subtitle, bullets, onUpload, isPending, styles }: TaskCardProps) => {
+  const t = useT();
+
+  return (
   <View style={styles.card}>
     <View style={styles.cardHeaderRow}>
       <Ionicons name="document-text-outline" size={28} color={PURPLE} />
@@ -216,19 +222,20 @@ const TaskCard = ({ title, subtitle, bullets, onUpload, isPending, styles }: Tas
       <View style={[styles.uploadButton, styles.uploadButtonDisabled]}>
         <View style={styles.uploadContent}>
           <Ionicons name="time-outline" size={20} color="#FFFFFF" />
-          <Text style={styles.uploadText}>Pending for Review</Text>
+          <Text style={styles.uploadText}>{t("Pending for Review")}</Text>
         </View>
       </View>
     ) : (
       <TouchableOpacity activeOpacity={0.85} onPress={onUpload} style={styles.uploadButton}>
         <View style={styles.uploadContent}>
           <Ionicons name="cloud-upload-outline" size={22} color="#FFFFFF" />
-          <Text style={styles.uploadText}>Upload</Text>
+          <Text style={styles.uploadText}>{t("Upload")}</Text>
         </View>
       </TouchableOpacity>
     )}
   </View>
-);
+  );
+};
 
 const createStyles = () =>
   StyleSheet.create({

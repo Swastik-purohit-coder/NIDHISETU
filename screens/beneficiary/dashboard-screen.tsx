@@ -16,13 +16,14 @@ import {
     type ViewStyle,
 } from 'react-native';
 import * as Location from 'expo-location';
-import { useAppLocale, useT } from 'lingo.dev/react';
+import { useT } from 'lingo.dev/react';
 
 import { AppIcon } from '@/components/atoms/app-icon';
 import type { IconName } from '@/components/atoms/app-icon';
 import { AppText } from '@/components/atoms/app-text';
 import { AppButton } from '@/components/atoms/app-button';
 import { InfoCard } from '@/components/molecules/info-card';
+import { LanguageSwitcher } from '@/components/molecules/language-switcher';
 import { useAuthStore } from '@/state/authStore';
 import { governmentUpdatesClient, type GovernmentUpdate } from '@/services/ai/governmentUpdates';
 import type { BeneficiaryDrawerParamList } from '@/navigation/types';
@@ -32,15 +33,6 @@ import type { AppTheme } from '@/constants/theme';
 import MapView, { Marker, PROVIDER_GOOGLE } from '@/components/react-native-maps-shim';
 
 type BeneficiaryNavigation = DrawerNavigationProp<BeneficiaryDrawerParamList>;
-
-const SUPPORTED_LANGUAGES = [
-    { code: 'en', label: 'English' },
-    { code: 'hi', label: 'हिन्दी (Hindi)' },
-    { code: 'or', label: 'ଓଡ଼ିଆ (Odia)' },
-    { code: 'bn', label: 'বাংলা (Bengali)' },
-] as const;
-
-type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code'];
 type CalculatorRoute = 'EmiCalculator' | 'SubsidyCalculator' | 'EligibilityPrediction';
 
 type MenuItemKey = 'trackLoan' | 'evidenceTasks' | 'geoCamera' | 'notifications' | 'contactOfficer' | 'myProfile';
@@ -138,7 +130,6 @@ export const BeneficiaryDashboardScreen = () => {
     const styles = useMemo(() => createStyles(theme), [theme]);
     const profile = useAuthStore((state) => state.profile);
     const t = useT();
-    const { locale, setLocale } = useAppLocale();
 
     const defaultGovUpdates: GovernmentUpdate[] = [
         {
@@ -159,7 +150,6 @@ export const BeneficiaryDashboardScreen = () => {
     const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
     const [selectedUpdate, setSelectedUpdate] = useState<GovernmentUpdate | null>(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
-    const [languageModalVisible, setLanguageModalVisible] = useState(false);
     const [mapModalVisible, setMapModalVisible] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
     const [locationError, setLocationError] = useState<string | null>(null);
@@ -195,7 +185,7 @@ export const BeneficiaryDashboardScreen = () => {
         try {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
-                setLocationError('Location permission is required to show the live map.');
+                setLocationError(t('Location permission is required to show the live map.'));
                 return;
             }
 
@@ -206,7 +196,7 @@ export const BeneficiaryDashboardScreen = () => {
             setUserLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });
         } catch (error) {
             console.error('Location fetch error:', error);
-            setLocationError('Unable to fetch current location. Please try again.');
+            setLocationError(t('Unable to fetch current location. Please try again.'));
         } finally {
             setLocationLoading(false);
         }
@@ -223,7 +213,7 @@ export const BeneficiaryDashboardScreen = () => {
             try {
                 const { status } = await Location.requestForegroundPermissionsAsync();
                 if (status !== 'granted') {
-                    setLocationError('Location permission is required to show the live map.');
+                    setLocationError(t('Location permission is required to show the live map.'));
                     return;
                 }
 
@@ -306,11 +296,6 @@ export const BeneficiaryDashboardScreen = () => {
         setIsModalVisible(false);
     };
 
-    const handleLanguageSelect = (code: LanguageCode) => {
-        setLocale(code);
-        setLanguageModalVisible(false);
-    };
-
         const handleMenuPress = (key: MenuItemKey) => {
         switch (key) {
             case 'trackLoan':
@@ -367,13 +352,7 @@ export const BeneficiaryDashboardScreen = () => {
                     >
                         <AppIcon name={mode === 'light' ? 'weather-night' : 'white-balance-sunny'} size={22} color={iconColor} />
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() => setLanguageModalVisible(true)}
-                        style={[styles.iconButton, { backgroundColor: iconBackground }]}
-                        accessibilityLabel="Change language"
-                    >
-                        <AppIcon name="earth" size={22} color={iconColor} />
-                    </TouchableOpacity>
+                    <LanguageSwitcher variant="inline" iconColor={iconColor} />
                     <TouchableOpacity
                         onPress={() => navigation.navigate('Notifications' as never)}
                         style={[styles.iconButton, { backgroundColor: iconBackground }]}
@@ -412,7 +391,7 @@ export const BeneficiaryDashboardScreen = () => {
                                     color={updatesLoading ? theme.colors.subtext : theme.colors.primary}
                                 />
                             <AppText style={[styles.refreshText, updatesLoading && styles.refreshDisabled]}>
-                                {updatesLoading ? t('Refreshing…') : t('Refresh')}
+                                {updatesLoading ? t('Refreshing...') : t('Refresh')}
                             </AppText>
                         </TouchableOpacity>
                     </View>
@@ -426,8 +405,8 @@ export const BeneficiaryDashboardScreen = () => {
                         {governmentUpdates.map((item, index) => (
                             <View key={`${item.title}-${index}`} style={[styles.horizontalCardWrapper, { width: cardWidth }]}>
                                 <InfoCard
-                                    title={item.title}
-                                    description={item.description}
+                                    title={t(item.title)}
+                                    description={t(item.description)}
                                     image={item.imageUrl}
                                     variant="standard"
                                     onPress={() => openUpdateDetail(item)}
@@ -501,9 +480,12 @@ export const BeneficiaryDashboardScreen = () => {
                     <View style={styles.mapModalContent}>
                         <View style={styles.mapModalHeader}>
                             <AppText style={styles.mapModalTitle}>{t('Live Map View')}</AppText>
-                            <TouchableOpacity onPress={() => setMapModalVisible(false)}>
-                                <AppIcon name="close" size={22} color={theme.colors.icon} />
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <LanguageSwitcher variant="inline" iconColor={theme.colors.icon} />
+                                <TouchableOpacity onPress={() => setMapModalVisible(false)}>
+                                    <AppIcon name="close" size={22} color={theme.colors.icon} />
+                                </TouchableOpacity>
+                            </View>
                         </View>
 
                         <View style={styles.mapContainerModal}>
@@ -522,7 +504,7 @@ export const BeneficiaryDashboardScreen = () => {
                                 {locationLoading ? (
                                     <View style={styles.statusChip}>
                                         <ActivityIndicator color={theme.colors.primary} size="small" />
-                                        <AppText style={styles.statusChipText}>{t('Fetching your location…')}</AppText>
+                                        <AppText style={styles.statusChipText}>{t('Fetching your location...')}</AppText>
                                     </View>
                                 ) : null}
                                 {locationError ? <AppText style={styles.errorText}>{t(locationError)}</AppText> : null}
@@ -563,28 +545,6 @@ export const BeneficiaryDashboardScreen = () => {
                                         />
                                     </>
                                 )}
-                            </View>
-                        </TouchableWithoutFeedback>
-                    </View>
-                </TouchableWithoutFeedback>
-            </Modal>
-
-            <Modal visible={languageModalVisible} transparent animationType="fade" onRequestClose={() => setLanguageModalVisible(false)}>
-                <TouchableWithoutFeedback onPress={() => setLanguageModalVisible(false)}>
-                    <View style={styles.modalOverlay}>
-                        <TouchableWithoutFeedback>
-                            <View style={styles.languageModalContent}>
-                                <AppText style={styles.languageModalTitle}>{t('Choose your language')}</AppText>
-                                {SUPPORTED_LANGUAGES.map((lang) => (
-                                    <TouchableOpacity
-                                        key={lang.code}
-                                        style={[styles.languageOption, locale === lang.code && styles.languageOptionActive]}
-                                        onPress={() => handleLanguageSelect(lang.code)}
-                                    >
-                                        <AppText style={styles.languageLabel}>{lang.label}</AppText>
-                                        {locale === lang.code ? <AppIcon name="check" size={18} color="#22C55E" /> : null}
-                                    </TouchableOpacity>
-                                ))}
                             </View>
                         </TouchableWithoutFeedback>
                     </View>
@@ -661,36 +621,26 @@ const createStyles = (theme: AppTheme) =>
         grid: {
             flexDirection: 'row',
             flexWrap: 'wrap',
-            justifyContent: 'space-between',
-            gap: 10,
-            marginBottom: 20,
+            gap: 12,
         },
         card: {
-            width: '48%',
-            borderRadius: 20,
-            paddingVertical: 20,
-            paddingHorizontal: 18,
-            alignItems: 'center',
-            elevation: 6,
-            marginBottom: 14,
-            shadowColor: 'rgba(15, 23, 42, 0.18)',
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.15,
-            shadowRadius: 14,
-            borderWidth: 0,
-        },
-        iconContainer: {
-            width: 62,
-            height: 62,
-            borderRadius: 31,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 12,
+            width: '47%',
+            borderRadius: 16,
+            padding: 14,
             backgroundColor: theme.mode === 'dark' ? 'rgba(15, 23, 42, 0.45)' : 'rgba(255, 255, 255, 0.75)',
             shadowColor: 'rgba(15, 23, 42, 0.15)',
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.4,
             shadowRadius: 6,
+        },
+        iconContainer: {
+            width: 48,
+            height: 48,
+            borderRadius: 12,
+            backgroundColor: theme.colors.surfaceVariant,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 10,
         },
         cardTitle: {
             fontSize: 13,
@@ -854,31 +804,5 @@ const createStyles = (theme: AppTheme) =>
         modalButtonLabel: {
             textTransform: 'none',
             fontWeight: '600',
-        },
-        languageModalContent: {
-            backgroundColor: theme.colors.surface,
-            borderRadius: 16,
-            padding: 20,
-            gap: 12,
-        },
-        languageModalTitle: {
-            fontSize: 16,
-            fontWeight: '600',
-            color: theme.colors.text,
-        },
-        languageOption: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingVertical: 12,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderColor: theme.colors.border,
-        },
-        languageOptionActive: {
-            borderColor: theme.colors.primary,
-        },
-        languageLabel: {
-            fontSize: 14,
-            color: theme.colors.text,
         },
     });

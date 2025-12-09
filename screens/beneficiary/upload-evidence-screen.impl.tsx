@@ -25,6 +25,7 @@ import * as Location from 'expo-location';
 import * as Device from 'expo-device';
 import * as Network from 'expo-network';
 import { decode as base64Decode } from 'base-64';
+import { useT } from 'lingo.dev/react';
 import { AppText } from '@/components/atoms/app-text';
 import { AppButton } from '@/components/atoms/app-button';
 import type { AppTheme } from '@/constants/theme';
@@ -33,18 +34,19 @@ import { useAppTheme } from '@/hooks/use-app-theme';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/state/authStore';
 import { evidenceRequirementApi, type EvidenceRequirementRecord } from '@/services/api/evidenceRequirements';
+import CameraGuideModal from '@/components/molecules/CameraGuideModal';
 
 const { width } = Dimensions.get('window');
 
 const ASSET_CATEGORIES = [
-  "Machinery",
-  "Raw Material",
-  "Shop Front",
-  "Stock",
-  "Livestock",
-  "Vehicle",
-  "Tools/Equipment",
-  "Construction Progress"
+  'Machinery',
+  'Raw Material',
+  'Shop Front',
+  'Stock',
+  'Livestock',
+  'Vehicle',
+  'Tools/Equipment',
+  'Construction Progress',
 ];
 
 export type UploadEvidenceScreenProps = {
@@ -62,6 +64,7 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
   const { requirementId, requirementName, startWithLibrary } = route.params || {};
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const t = useT();
   const gradientColors = useMemo<readonly [ColorValue, ColorValue]>(
     () => (theme.mode === 'dark' ? [theme.colors.gradientStart, theme.colors.gradientEnd] : ['#A7F3D0', '#6EE7B7']),
     [theme]
@@ -75,6 +78,7 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [deviceInfo, setDeviceInfo] = useState<string>('');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showGuide, setShowGuide] = useState(true);
   const [requirements, setRequirements] = useState<EvidenceRequirementRecord[]>([]);
   const [requirementsLoading, setRequirementsLoading] = useState(false);
   const [selectedRequirementId, setSelectedRequirementId] = useState<string | undefined>(requirementId);
@@ -149,11 +153,11 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
     const enabled = await Location.hasServicesEnabledAsync();
     if (!enabled) {
       Alert.alert(
-        'Location Required',
-        'Please enable location services to capture geo-tagged evidence.',
+        t('Location Required'),
+        t('Please enable location services to capture geo-tagged evidence.'),
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Open Settings', onPress: () => Platform.OS === 'ios' ? Linking.openURL('app-settings:') : Linking.openSettings() }
+          { text: t('Cancel'), style: 'cancel' },
+          { text: t('Open Settings'), onPress: () => Platform.OS === 'ios' ? Linking.openURL('app-settings:') : Linking.openSettings() }
         ]
       );
       return false;
@@ -161,7 +165,7 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
     
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Location permission is required.');
+      Alert.alert(t('Permission Denied'), t('Location permission is required.'));
       return false;
     }
     return true;
@@ -170,7 +174,7 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
   const handleCameraCapture = async () => {
     const selectedRequirement = requirements.find((req) => req.id === selectedRequirementId);
     if (selectedRequirement && selectedRequirement.permissions && selectedRequirement.permissions.camera === false) {
-      Alert.alert('Not Allowed', 'Camera capture is disabled for this requirement.');
+      Alert.alert(t('Not Allowed'), t('Camera capture is disabled for this requirement.'));
       return;
     }
     const hasLocation = await checkLocationServices();
@@ -179,7 +183,7 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Camera permission is required to take photos.');
+        Alert.alert(t('Permission needed'), t('Camera permission is required to take photos.'));
         return;
       }
 
@@ -199,14 +203,14 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to capture image');
+      Alert.alert(t('Error'), t('Failed to capture image'));
     }
   };
 
   const handleFilePick = async () => {
     const selectedRequirement = requirements.find((req) => req.id === selectedRequirementId);
     if (selectedRequirement && selectedRequirement.permissions && selectedRequirement.permissions.fileUpload === false) {
-      Alert.alert('Not Allowed', 'File upload is disabled for this requirement.');
+      Alert.alert(t('Not Allowed'), t('File upload is disabled for this requirement.'));
       return;
     }
 
@@ -218,7 +222,7 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permission.status !== 'granted') {
-      Alert.alert('Permission needed', 'Please allow file access to continue.');
+      Alert.alert(t('Permission needed'), t('Please allow file access to continue.'));
       return;
     }
 
@@ -257,15 +261,15 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
 
   const handleUpload = async () => {
     if (!imageUri) {
-      Alert.alert('Error', 'Please capture an image first');
+      Alert.alert(t('Error'), t('Please capture an image first'));
       return;
     }
     if (!assetCategory) {
-      Alert.alert('Error', 'Please select an asset category');
+      Alert.alert(t('Error'), t('Please select an asset category'));
       return;
     }
     if (!location) {
-      Alert.alert('Error', 'Location data is missing. Please retake the photo.');
+      Alert.alert(t('Error'), t('Location data is missing. Please retake the photo.'));
       return;
     }
 
@@ -289,7 +293,7 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
         const newPath = `${folder}${fileName}`;
         await FileSystem.copyAsync({ from: imageUri, to: newPath });
         publicUrl = newPath;
-        Alert.alert('Offline Mode', 'Evidence saved locally. It will be uploaded when you are back online.');
+        Alert.alert(t('Offline Mode'), t('Evidence saved locally. It will be uploaded when you are back online.'));
       }
 
       await submitEvidence({
@@ -326,15 +330,15 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
       }
 
       if (isOnline) {
-        Alert.alert('Success', 'Evidence uploaded successfully', [
-          { text: 'OK', onPress: () => navigation.goBack() }
+        Alert.alert(t('Success'), t('Evidence uploaded successfully'), [
+          { text: t('OK'), onPress: () => navigation.goBack() }
         ]);
       } else {
         navigation.goBack();
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to save evidence');
+      Alert.alert(t('Error'), t('Failed to save evidence'));
     } finally {
       setLoading(false);
     }
@@ -360,7 +364,7 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={theme.colors.onPrimary} />
           </TouchableOpacity>
-          <AppText style={styles.headerTitle}>Upload Evidence</AppText>
+          <AppText style={styles.headerTitle}>{t('Upload Evidence')}</AppText>
           <View style={{ width: 40 }} />
         </View>
       </SafeAreaView>
@@ -384,9 +388,9 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
               <View style={styles.iconCircle}>
                 <Ionicons name="camera" size={40} color={theme.colors.subtext} />
               </View>
-              <AppText style={styles.geoText}>GEO CAMERA</AppText>
+              <AppText style={styles.geoText}>{t('GEO CAMERA')}</AppText>
               <AppText style={styles.timestampText}>{timestamp}</AppText>
-              {location && <AppText style={styles.locationText}>GPS Active</AppText>}
+              {location && <AppText style={styles.locationText}>{t('GPS Active')}</AppText>}
             </View>
           )}
         </TouchableOpacity>
@@ -396,11 +400,11 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
             {requirementsLoading ? (
               <View style={styles.requirementsRow}>
                 <ActivityIndicator size="small" color={theme.colors.primary} />
-                <AppText style={styles.requirementsLabel}>Loading requirements...</AppText>
+                <AppText style={styles.requirementsLabel}>{t('Loading requirements...')}</AppText>
               </View>
             ) : requirements.length ? (
               <View style={styles.requirementsContainer}>
-                <AppText style={styles.label}>Select Requirement</AppText>
+                <AppText style={styles.label}>{t('Select Requirement')}</AppText>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -424,7 +428,7 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
                           selectedRequirementId === req.id && { color: theme.colors.onSecondary },
                         ]}
                       >
-                        {req.label}
+                        {t(req.label)}
                       </AppText>
                     </TouchableOpacity>
                   ))}
@@ -432,30 +436,30 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
               </View>
             ) : null}
           <View style={styles.inputGroup}>
-            <AppText style={styles.label}>Asset Category</AppText>
+            <AppText style={styles.label}>{t('Asset Category')}</AppText>
             <TouchableOpacity 
                 style={styles.dropdownButton} 
                 onPress={() => setShowDropdown(true)}
             >
-                <AppText style={styles.dropdownText}>{assetCategory}</AppText>
+                <AppText style={styles.dropdownText}>{t(assetCategory)}</AppText>
                 <Ionicons name="chevron-down" size={20} color={theme.colors.subtext} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.inputGroup}>
-            <AppText style={styles.label}>Caption</AppText>
+            <AppText style={styles.label}>{t('Caption')}</AppText>
             <TextInput
               style={styles.input}
               value={caption}
               onChangeText={setCaption}
-              placeholder="Enter a caption"
+              placeholder={t('Enter a caption')}
               placeholderTextColor={theme.colors.subtext}
             />
           </View>
 
           <View style={styles.inputGroup}>
              <AppButton
-                label={isOnline ? "Upload Evidence" : "Save Offline"}
+               label={isOnline ? t('Upload Evidence') : t('Save Offline')}
                 onPress={handleUpload}
                 loading={loading}
                style={styles.uploadButton}
@@ -480,7 +484,7 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
             onPress={() => setShowDropdown(false)}
         >
             <View style={styles.modalContent}>
-                <AppText style={styles.modalTitle}>Select Asset Category</AppText>
+                <AppText style={styles.modalTitle}>{t('Select Asset Category')}</AppText>
                 <FlatList
                     data={ASSET_CATEGORIES}
                     keyExtractor={(item) => item}
@@ -492,11 +496,11 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
                                 setShowDropdown(false);
                             }}
                         >
-                            <AppText style={[
-                                styles.modalItemText,
-                                assetCategory === item && styles.selectedItemText
-                            ]}>
-                                {item}
+                      <AppText style={[
+                        styles.modalItemText,
+                        assetCategory === item && styles.selectedItemText
+                      ]}>
+                        {t(item)}
                             </AppText>
                             {assetCategory === item && (
                               <Ionicons name="checkmark" size={20} color={theme.colors.secondary} />
@@ -507,6 +511,11 @@ export const UploadEvidenceScreen = ({ navigation, route }: UploadEvidenceScreen
             </View>
         </TouchableOpacity>
       </Modal>
+      <CameraGuideModal
+        visible={showGuide}
+        onClose={() => setShowGuide(false)}
+        onContinue={() => setShowGuide(false)}
+      />
     </View>
   );
 };

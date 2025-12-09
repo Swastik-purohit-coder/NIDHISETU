@@ -1,20 +1,14 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useAppLocale } from 'lingo.dev/react';
-
-const LOCALES = [
-  { code: 'en', label: 'English' },
-  { code: 'hi', label: 'हिन्दी' },
-  { code: 'or', label: 'Odia' },
-  { code: 'bn', label: 'বাংলা' },
-];
+import { LANGUAGE_LIST } from '../i18n/languageMap';
 
 const LanguageSwitcher = () => {
   const { locale, setLocale } = useAppLocale();
 
   return (
     <View style={styles.container}>
-      {LOCALES.map(({ code, label }) => {
+      {LANGUAGE_LIST.map(({ code, nativeLabel, flag }) => {
         const isActive = locale === code;
         return (
           <TouchableOpacity
@@ -22,7 +16,9 @@ const LanguageSwitcher = () => {
             style={[styles.button, isActive && styles.buttonActive]}
             onPress={() => setLocale(code)}
           >
-            <Text style={[styles.label, isActive && styles.labelActive]}>{label}</Text>
+            <Text style={[styles.label, isActive && styles.labelActive]}>
+              {flag} {nativeLabel}
+            </Text>
           </TouchableOpacity>
         );
       })}

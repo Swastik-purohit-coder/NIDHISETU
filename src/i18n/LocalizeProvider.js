@@ -12,15 +12,26 @@ import {
   syncLocaleState,
 } from './lingoShim';
 
-import en from '../lingo/en.json';
-import hi from '../lingo/hi.json';
-import or from '../lingo/or.json';
-import bn from '../lingo/bn.json';
+import enMod from '../lingo/en.json';
+import hiMod from '../lingo/hi.json';
+import orMod from '../lingo/or.json';
+import bnMod from '../lingo/bn.json';
 
 const STORAGE_KEY = '@nidhisetu.locale';
-const DICTIONARIES = { en, hi, or, bn };
+const normalizeDict = (mod) => mod?.default ?? mod ?? {};
 
-const getDictionaryFor = (locale) => DICTIONARIES[locale] || DICTIONARIES[DEFAULT_LOCALE];
+const EN = normalizeDict(enMod);
+const DICTIONARIES = {
+  en: EN,
+  hi: normalizeDict(hiMod),
+  or: normalizeDict(orMod),
+  bn: normalizeDict(bnMod),
+};
+const getDictionaryFor = (locale) => {
+  const target = DICTIONARIES[locale] || EN;
+  // Merge English fallback first, then override with target locale
+  return { ...EN, ...target };
+};
 
 export const LocalizeProvider = ({ children }) => {
   const [locale, setLocaleState] = useState(DEFAULT_LOCALE);
